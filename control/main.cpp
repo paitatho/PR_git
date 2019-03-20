@@ -1,12 +1,11 @@
-#include "control.h"
+#include "controler.h"
 
 using namespace std;
 
 int main()
 {
-	ssc arm;
-	arm.init();
-	arm.move();
+	Controler ssc;
+	ssc.move();
 	
 	return 0;
 }
