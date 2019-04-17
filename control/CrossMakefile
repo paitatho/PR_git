@@ -1,0 +1,30 @@
+CXX=arm-linux-gnueabihf-g++
+CXXFLAGS=-Wall -L ~/wiringPi/wiringPi/wiringPi.h
+LDFLAGS=-L ~/wiringPi/wiringPi -lwiringPi
+EXEC=prog
+SRC= $(wildcard *.cpp)
+OBJ= $(SRC:.cpp=.o)
+
+all: $(EXEC)
+
+prog: $(OBJ)
+	@echo "generating executable ..."
+	@$(CXX) -o $@ $^ $(LDFLAGS)
+
+control.o: control.h
+
+main.o: control.h
+
+%.o: %.c
+	@echo "generetation object ..."
+	@$(CXX) -o $@ -c $< $(CXXFLAGS)
+
+.PHONY: clean mrproper
+
+clean:
+	@rm -rf *.o
+
+mrproper: clean
+	@rm -rf $(EXEC)
+
+			
