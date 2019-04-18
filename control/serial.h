@@ -2,10 +2,13 @@
 #define H_SERIAL
 
 #include "type.h"
-#include <iostream>
-#include <cstring>
-#include <errno.h>
-#include <string>
+#include <wiringPi.h>
+
+/*
+ * La classe Serial permet d'établir une connexion UART avec 
+ * la carte SSC-32U. De plus elle fournit une interface pour y envoyer 
+ * des commandes et lire les message.
+ */ 
 
 class Serial
 {

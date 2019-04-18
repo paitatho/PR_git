@@ -3,19 +3,43 @@
 
 #include "type.h"
 #include "serial.h"
-  
+#include "servo.h"
+
+
+/*
+ *La classe Controler gère le controle de chaque servo moteur
+ */
+
 class Controler
 {
 	private:
-
-		Serial sscUart;
+		std::vector<Servo> servos;
 	public:
 	
 		Controler();
-		void move();
-		unsigned short int done();
-
+		
+		//fonction temporaire de test
+		void test();
 	
+		//permet de tourner la base du bras
+		RET moveBase(int angle);
+		
+		//permet de deplacer le bras
+		RET moveArm(int angle1,int angle2);
+		
+		//permet de deplacer un moteur
+		RET moveHand(int angle);
+		
+
+		//stop le moteur désiré 
+		void stop(unsigned int servo);
+		
+		void waitForDone();
+		
+		void init();
+		
+		
+		
 };
 
 #endif

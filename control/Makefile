@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-W -Wall -pedantic 
+CXXFLAGS=-W -Wall -pedantic -std=c++11
 LDFLAGS=-lwiringPi
 EXEC=prog
 SRC= $(wildcard *.cpp)
@@ -30,10 +30,12 @@ depend:
 			
 # DO NOT DELETE
 
-serial.o: /usr/include/wiringSerial.h /usr/include/wiringPi.h serial.h type.h
-serial.o: /usr/include/errno.h /usr/include/features.h
+serial.o: /usr/include/wiringSerial.h /usr/include/wiringPi.h serial.h
+serial.o: type.h /usr/include/errno.h /usr/include/features.h
 serial.o: /usr/include/stdc-predef.h
 controler.o: controler.h type.h serial.h /usr/include/errno.h
 controler.o: /usr/include/features.h /usr/include/stdc-predef.h
+servo.o: servo.h type.h serial.h /usr/include/errno.h
+servo.o: /usr/include/features.h /usr/include/stdc-predef.h
 main.o: controler.h type.h serial.h /usr/include/errno.h
 main.o: /usr/include/features.h /usr/include/stdc-predef.h

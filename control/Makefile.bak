@@ -1,6 +1,5 @@
 CXX=g++
-CXXFLAGS=-Wall 
-TEST=-W -Wall
+CXXFLAGS=-W -Wall -pedantic 
 LDFLAGS=-lwiringPi
 EXEC=prog
 SRC= $(wildcard *.cpp)
@@ -14,9 +13,9 @@ prog: $(OBJ)
 	@echo "generating executable ..."
 	@$(CXX) $(LDFLAGS) -o $@ $(addprefix $(OPATH), $^)
 	
-%.o: %.cpp
+$(OPATH)%.o: %.cpp
 	@echo "creating object ..."
-	$(CXX) $(TEST) -c $< -o $(OPATH)$@
+	$(CXX) $(TEST) -c $< -o $@
 
 .PHONY: clean mrproper
 
@@ -27,12 +26,14 @@ mrproper: clean
 	@rm -rf $(EXEC)
 	
 depend:
-	makedepend -- $(CXXFLAGS) -- $(SRC)
+	makedepend -p$(OPATH) -- $(CXXFLAGS) -- $(SRC)
 			
 # DO NOT DELETE
 
 serial.o: /usr/include/wiringSerial.h /usr/include/wiringPi.h serial.h type.h
 serial.o: /usr/include/errno.h /usr/include/features.h
 serial.o: /usr/include/stdc-predef.h
-controler.o: controler.h type.h
-main.o: controler.h type.h
+controler.o: controler.h type.h serial.h /usr/include/errno.h
+controler.o: /usr/include/features.h /usr/include/stdc-predef.h
+main.o: controler.h type.h serial.h /usr/include/errno.h
+main.o: /usr/include/features.h /usr/include/stdc-predef.h

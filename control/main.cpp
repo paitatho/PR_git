@@ -5,7 +5,7 @@ using namespace std;
 int main()
 {
 	Controler ssc;
-	ssc.move();
+	ssc.test();
 	
 	return 0;
 }

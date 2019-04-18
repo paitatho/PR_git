@@ -1,9 +1,8 @@
 #include <wiringSerial.h> 
-#include <wiringPi.h>
 #include "serial.h"
 
 using namespace std;
-
+ 
 
 Serial::Serial(string d, unsigned int b) : device(d), baud(b),init(false), fd(-1)
 {
