@@ -71,8 +71,6 @@ end = time.time()
 # show timing information on YOLO
 print("[INFO] YOLO took {:.6f} seconds".format(end - start))
 
-
-
 # initialize our lists of detected bounding boxes, confidences, and
 # class IDs, respectively
 boxes = []
@@ -117,7 +115,9 @@ for output in layerOutputs:
 idxs = cv2.dnn.NMSBoxes(boxes, confidences, args["confidence"],
 	args["threshold"])
 
-thickness = 1 + (H+W)//1000
+# thickness of text / boxes
+thickness = 1 + (H+W)//2000
+
 # ensure at least one detection exists
 if len(idxs) > 0:
 	# loop over the indexes we are keeping
@@ -131,9 +131,10 @@ if len(idxs) > 0:
 		cv2.rectangle(image, (x, y), (x + w, y + h), color, thickness)
 		text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
 		cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
-			3, color, thickness)
+			thickness/4, color, thickness)
  
 # show the output image
-cv2.namedWindow('Image', cv2.WINDOW_NORMAL)
+cv2.imwrite(args["image"][:-4]+"_out.jpg", image)
+cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
 cv2.imshow("Image", image)
 cv2.waitKey(0)
