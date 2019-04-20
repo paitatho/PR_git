@@ -12,7 +12,11 @@ ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", required=True,
 	help="path to input image")
 ap.add_argument("-y", "--yolo", required=True,
-	help="base path to YOLO directory")
+	help="base path to YOLO directory")  #yolo-sweets 
+ap.add_argument("-g", "--config", required=True,
+	help="name of .cfg and file to use") #sweets-tiny_v4
+ap.add_argument("-w", "--weights", required=True,
+	help="name of .weights file to use") #sweets-tiny_v4_9400
 ap.add_argument("-c", "--confidence", type=float, default=0.5,
 	help="minimum probability to filter weak detections")
 ap.add_argument("-t", "--threshold", type=float, default=0.3,
@@ -20,8 +24,8 @@ ap.add_argument("-t", "--threshold", type=float, default=0.3,
 args = vars(ap.parse_args())
 
 
-# load the COCO class labels our YOLO model was trained on
-labelsPath = os.path.sep.join([args["yolo"], "coco.names"])
+# load the class labels our YOLO model was trained on
+labelsPath = os.path.sep.join([args["yolo"], "sweets.names"])
 LABELS = open(labelsPath).read().strip().split("\n")
  
 # initialize a list of colors to represent each possible class label
@@ -30,10 +34,10 @@ COLORS = np.random.randint(0, 255, size=(len(LABELS), 3),
 	dtype="uint8")
 
 # derive the paths to the YOLO weights and model configuration
-weightsPath = os.path.sep.join([args["yolo"], "yolov3.weights"])
-configPath = os.path.sep.join([args["yolo"], "yolov3.cfg"])
+configPath = os.path.sep.join([args["yolo"], args["config"]+".cfg"])
+weightsPath = os.path.sep.join([args["yolo"], args["weights"]+".weights"])
  
-# load our YOLO object detector trained on COCO dataset (80 classes)
+# load our YOLO object detector trained on sweets dataset (5 classes)
 print("[INFO] loading YOLO from disk...")
 net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
 

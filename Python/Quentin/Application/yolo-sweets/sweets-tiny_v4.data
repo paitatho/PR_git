@@ -1,0 +1,5 @@
+classes= 5  
+train  = /home/quentin/Documents/UTC/P2019/PR_Robot/YOLOv3/Version1/Yolo-Annotation-Tool/ForTraining/train.txt  
+valid  = /home/quentin/Documents/UTC/P2019/PR_Robot/YOLOv3/Version1/Yolo-Annotation-Tool/ForTraining/test.txt  
+names  = /home/quentin/Documents/UTC/P2019/PR_Robot/YOLOv3/Version1/Yolo-Annotation-Tool/sweets.names  
+backup = /home/quentin/Documents/UTC/P2019/PR_Robot/YOLOv3/darknet/backup/backup-tiny/version4/

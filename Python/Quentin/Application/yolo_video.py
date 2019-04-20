@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # import the necessary packages
 import numpy as np
 import argparse
@@ -13,7 +15,11 @@ ap.add_argument("-i", "--input", required=True,
 ap.add_argument("-o", "--output", required=True,
 	help="path to output video")
 ap.add_argument("-y", "--yolo", required=True,
-	help="base path to YOLO directory")
+	help="base path to YOLO directory")  #yolo-sweets 
+ap.add_argument("-g", "--config", required=True,
+	help="name of .cfg and file to use") #sweets-tiny_v4
+ap.add_argument("-w", "--weights", required=True,
+	help="name of .weights file to use") #sweets-tiny_v4_9400
 ap.add_argument("-c", "--confidence", type=float, default=0.5,
 	help="minimum probability to filter weak detections")
 ap.add_argument("-t", "--threshold", type=float, default=0.3,
@@ -31,8 +37,8 @@ COLORS = np.random.randint(0, 255, size=(len(LABELS), 3),
 	dtype="uint8")
 
 # derive the paths to the YOLO weights and model configuration
-weightsPath = os.path.sep.join([args["yolo"], "sweets-tiny_v4_9400.weights"])
-configPath = os.path.sep.join([args["yolo"], "sweets-tiny_v4.cfg"])
+configPath = os.path.sep.join([args["yolo"], args["config"]+".cfg"])
+weightsPath = os.path.sep.join([args["yolo"], args["weights"]+".weights"])
 
 # load our YOLO object detector trained on sweet dataset (5 classes)
 # and determine only the *output* layer names that we need from YOLO
