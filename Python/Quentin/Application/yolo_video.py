@@ -175,7 +175,7 @@ writer.release()
 vs.release()
 
 
-#$ python camera.py --input videos/sweets_test1.mp4 --output output/sweets_test1_out.avi --yolo yolo_tiny
+#$ python yolo_video.py --input data/video.mp4 --output data/video_out.avi --yolo yolo-sweets
 #[INFO] loading YOLO from disk...
 #[INFO] 583 total frames in video
 #[INFO] single frame took 0.3500 seconds
