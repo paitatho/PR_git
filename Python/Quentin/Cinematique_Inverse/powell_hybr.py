@@ -5,8 +5,6 @@ import numpy as np
 from scipy.optimize import root
 import matplotlib.pyplot as plt
 
-
-
 def f(theta):
     return [arm_len[0]*np.cos(theta[0]) + arm_len[1]*np.cos(sum(theta)), 
             arm_len[0]*np.sin(theta[0]) + arm_len[1]*np.sin(sum(theta))] 
@@ -65,6 +63,10 @@ def findTheta(depth=0):
     
 
 """
+global arm_len
+arm_len = [14.5, 18.5]
+global pos
+pos = np.array([6,11])
 for t in np.arange(6, 32, 2):
     pos[0] = t
     pos[1] = 11
