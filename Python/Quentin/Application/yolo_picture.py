@@ -11,11 +11,11 @@ import os
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", required=True,
 	help="path to input image")
-ap.add_argument("-y", "--yolo", required=True,
+ap.add_argument("-y", "--yolo", required=False, default="yolo-sweets",
 	help="base path to YOLO directory")  #yolo-sweets 
-ap.add_argument("-g", "--config", required=True,
+ap.add_argument("-g", "--config", required=False, default="yolo-tiny_v4",
 	help="name of .cfg and file to use") #sweets-tiny_v4
-ap.add_argument("-w", "--weights", required=True,
+ap.add_argument("-w", "--weights", required=False, default="sweets-tiny_v4_9400",
 	help="name of .weights file to use") #sweets-tiny_v4_9400
 ap.add_argument("-c", "--confidence", type=float, default=0.5,
 	help="minimum probability to filter weak detections")
