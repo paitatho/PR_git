@@ -36,8 +36,9 @@ class Controler
 		
 		void waitForDone();
 		
-		void init();
+		void init(unsigned int speed = DEFAULT_TIME);
 		
+		void coucou();
 		
 		
 };

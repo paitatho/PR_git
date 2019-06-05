@@ -57,10 +57,10 @@ int Servo::getPulseWidth(){
 void Servo::init(std::vector<Servo> s){
 	string cmd("");
 	for (int i=0;i<s.size();++i){
-		cmd +="#"+ to_string(s[i].pin)+"P"+to_string(s[i].defaut)+ "T"+to_string(DEFAULT_TIME)+"\r";
+		cmd +="#"+ to_string(s[i].pin)+"P"+to_string(s[i].defaut);
 		s[i].current = s[i].defaut;
 	}
-	cmd +="\r";
+	cmd +="T"+to_string(DEFAULT_TIME)+ "\r";
 	sscUart.send(cmd);
 	return ;
 }

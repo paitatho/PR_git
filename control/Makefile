@@ -2,6 +2,8 @@ CXX=g++
 CXXFLAGS=-W -Wall -pedantic -std=c++11
 LDFLAGS=-lwiringPi
 EXEC=prog
+LDFLAGS += -L/usr/lib/python3.5/config-3.5m-arm-linux-gnueabihf -L/usr/lib -lpython3.5m
+INCLUDEPATH= -I/usr/include/python3.5m
 SRC= $(wildcard *.cpp)
 OPATH= obj/
 OBJ= $(SRC:.cpp=.o)
@@ -11,11 +13,11 @@ all: $(EXEC)
 
 prog: $(OBJ)
 	@echo "generating executable ..."
-	@$(CXX) $(LDFLAGS) -o $@ $(addprefix $(OPATH), $^)
+	@$(CXX) $(INCLUDEPATH) $(LDFLAGS) -o $@ $(addprefix $(OPATH), $^)
 	
 %.o: %.cpp
 	@echo "creating object ..."
-	$(CXX) $(TEST) -c $< -o $(OPATH)$@
+	$(CXX) $(INCLUDEPATH) -c $< -o $(OPATH)$@
 
 .PHONY: clean mrproper
 

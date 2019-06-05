@@ -16,20 +16,49 @@ using namespace std;
 
 Controler::Controler()
 {
-	servos.push_back(Servo(3));
 	servos.push_back(Servo(0));
-	Servo::init(servos);
+	servos.push_back(Servo(3));
+	servos.push_back(Servo(6,1300));
 }
 
 void Controler::test()
 {
 	srand(time(0));
-	//servos[0].initPos();
-	moveBase(190);
-	delay(4000);
+	cout << "Initialisation terminée \n"<<endl; 
+	cout.flush();
+	while(1){
+		coucou();
+	}
+	
+	
 } 
 
-
+void Controler::coucou(){
+	Serial* ssc = Servo::getSsc();
+	int t = 2200;
+	// montée de la main
+	cout << "montée"<<endl; 
+	string cmd("");
+	for (int i=0;i<servos.size();++i){
+		cmd +="#"+ to_string(servos[i].pin)+"P"+to_string(1900);
+		servos[i].current = servos[i].defaut;
+	}
+	cmd +="T"+to_string(t)+ "\r";
+	ssc->send(cmd);
+	waitForDone();
+	
+	//descente de la main
+	cout << "descente"<<endl; 
+	cmd = "";
+	for (int i=0;i<servos.size();++i){
+		cmd +="#"+ to_string(servos[i].pin)+"P"+to_string(1000);
+		servos[i].current = servos[i].defaut;
+	}
+	cmd +="T"+to_string(t)+ "\r";
+	ssc->send(cmd);
+	waitForDone();
+	return ;
+}
 
 void Controler::stop(unsigned int servo)
 {
@@ -40,12 +69,16 @@ void Controler::waitForDone(){
 	while(!servos[0].done()){}
 }
 
-void Controler::init(){
-	Serial ssc = Servo::getSsc();
-	std::string cmd("");
-	for(int i = 0; i<servos.size(); ++i){
-		servos[i].initPos();
+void Controler::init(unsigned int speed){
+	Serial* ssc = Servo::getSsc();
+	string cmd("");
+	for (int i=0;i<servos.size();++i){
+		cmd +="#"+ to_string(servos[i].pin)+"P"+to_string(servos[i].defaut);
+		servos[i].current = servos[i].defaut;
 	}
+	cmd +="T"+to_string(speed)+ "\r";
+	ssc->send(cmd);
+	return ;
 }
 
 RET Controler::moveBase(int angle){

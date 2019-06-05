@@ -26,6 +26,15 @@ class Servo
 			current = getPulseWidth()*10;
 		}
 		
+		Servo(unsigned int p,unsigned int d ):min(500),max(2500),pin(p)
+		{
+			if(d >= min && d<=max)
+				defaut= d;
+			else 
+				defaut = 1500;
+			current = getPulseWidth()*10;
+		}
+		
 		//fonction temporaire de test
 		void test(){}
 	
@@ -45,8 +54,8 @@ class Servo
 		//
 		int getPulseWidth();
 		
-		static Serial getSsc(){
-			return sscUart;
+		static Serial* getSsc(){
+			return &sscUart;
 		}
 		
 		static void init(std::vector<Servo> s);
