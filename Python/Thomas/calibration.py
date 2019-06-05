@@ -27,7 +27,7 @@ objp[:,:2] = np.mgrid[0:c,0:l].T.reshape(-1,2)*27
 objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
-images = glob.glob('data/Webcam/*.jpg')
+images = glob.glob('data/calib/*.jpg')
 
 for i,fname in enumerate(images):
     print(i)
@@ -56,5 +56,5 @@ for i,fname in enumerate(images):
 #rvecs = vecteur de rotation
 #tvecs = vecteur de translation
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
-np.savetxt("data/webcamDist2.txt", dist)
-np.savetxt("data/webcamMatrix2.txt", mtx)
+np.savetxt("data/camDist2.txt", dist)
+np.savetxt("data/camMatrix2.txt", mtx)

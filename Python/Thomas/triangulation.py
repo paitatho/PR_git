@@ -83,7 +83,7 @@ def getDisparity(imgL, imgR):
 
 
 #récupére les caractéristiques de la caméra calculé dans calibration.py
-cameraMatrix = np.loadtxt('data/webcamMatrix.txt')
+cameraMatrix = np.loadtxt('data/camMatrix.txt')
 f = (cameraMatrix[0,0]+cameraMatrix[1,1]) / 2 # focale de la caméra
 t = 40 # distance entre les deux caméras 4cm
 

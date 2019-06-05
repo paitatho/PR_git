@@ -7,16 +7,17 @@ import datetime
 import imutils
 import time
 import cv2
+from PIL import Image
  
 # initialize the video streams and allow them to warmup
 print("[INFO] starting cameras...")
 webcam0 = VideoStream(src=0).start()
 webcam1 = VideoStream(src=1).start()
-time.sleep(2.0)
+time.sleep(1.0)
  
 # number of frames read
 total = 0
-
+nb=0
 # loop over frames from the video streams
 while True:
 	# initialize the list of frames that have been processed
@@ -28,24 +29,11 @@ while True:
 		# it to have a maximum width of 400 pixels
 		frame = stream.read()
 		frame = imutils.resize(frame, width=480)
- 
-		# convert the frame to grayscale, blur it slightly, update
-		# the motion detector
-		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-		gray = cv2.GaussianBlur(gray, (21, 21), 0)
- 
-		# we should allow the motion detector to "run" for a bit
-		# and accumulate a set of frames to form a nice average
-		if total < 32:
-			frames.append(frame)
-			continue			
-			# loop over frames from the video streams
 
 		frames.append(frame)
 
 	# increment the total number of frames read and grab the 
 	# current timestamp
-	total += 1
 	timestamp = datetime.datetime.now()
 	ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
  
@@ -60,6 +48,14 @@ while True:
 	# if the `q` key was pressed, break from the loop
 	if key == ord("q"):
 		break
+	elif key == ord("t"):
+		string="/home/pi/Bureau/PR_git/Python/Thomas/data/" + "right" + str(nb) + ".png"
+		string1="/home/pi/Bureau/PR_git/Python/Thomas/data/" + "left" + str(nb) + ".png"
+		print("image taked\n")
+		cv2.imwrite(string,frames[0])
+		cv2.imwrite(string1,frames[1])
+		nb+=1
+		
 
 # do a bit of cleanup
 print("[INFO] cleaning up...")
