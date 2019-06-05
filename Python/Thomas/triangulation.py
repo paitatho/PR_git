@@ -46,13 +46,13 @@ def drawSquare(im,squares,color='r'):
         ax.add_patch(rect)
     plt.show()
  
-def getDisparity(imgL, imgR):
+def getDisparity(imgL, imgR,n=1):
     # SGBM Parameters -----------------
     window_size = 3                    # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
      
     left_matcher = cv2.StereoSGBM_create(
         minDisparity=0,
-        numDisparities=16,             # max_disp has to be dividable by 16 f. E. HH 192, 256
+        numDisparities=16*n,             # max_disp has to be dividable by 16 f. E. HH 192, 256
         blockSize=15,
         P1=8 * 3 * window_size ** 2,    # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
         P2=32 * 3 * window_size ** 2,
@@ -98,13 +98,19 @@ def getDisparity(imgL, imgR):
 #récupére les caractéristiques de la caméra calculé dans calibration.py
 
 cameraMatrix = np.loadtxt('data/camMatrix.txt')
+distMatrix = np.loadtxt('data/camDist.txt')
 
 f = (cameraMatrix[0,0]+cameraMatrix[1,1]) / 2 # focale de la caméra
 t = 20 # distance entre les deux caméras en mm
 
 #charge image de gauche et de droite
-left = cv2.imread("data/left1.jpg",0)
-right = cv2.imread("data/right1.jpg",0)
+left = cv2.imread("data/left0.png",0)
+right = cv2.imread("data/right0.png",0)
+printImages([left,right], 1,2)
+
+left = cv2.undistort(left, mtx, dist, None)
+right = cv2.undistort(right, mtx, dist, None)
+
 printImages([left,right], 1,2)
 
 # FACON 1 DE CALCULER MAP DES DISPARRITES
@@ -112,7 +118,7 @@ stereo = cv2.StereoSGBM_create(numDisparities=16, blockSize=7*7)
 disparity = stereo.compute(left,right)
 
 # FACON 2 DE CALCULER MAP DES DISPARRITES
-disparity = getDisparity(left,right)
+disparity = getDisparity(right,left,1)
 ptImage(disparity)
 #drawSquare(disparity,[[400,300,20,20]])
 
