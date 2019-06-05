@@ -28,8 +28,7 @@ while True:
 		# read the next frame from the video stream and resize
 		# it to have a maximum width of 400 pixels
 		frame = stream.read()
-		frame = imutils.resize(frame, width=480)
-
+		frame = cv2.resize(frame, (640,480))
 		frames.append(frame)
 
 	# increment the total number of frames read and grab the 
