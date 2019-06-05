@@ -46,9 +46,13 @@ for i,fname in enumerate(images):
         imgpoints.append(corners2)
 
         # Draw and display the corners
-        img = cv2.drawChessboardCorners(img, (c,l), corners2,ret)
-        plt.figure(i)
-        plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+# =============================================================================
+#         img = cv2.drawChessboardCorners(img, (c,l), corners2,ret)
+#         plt.figure(i)
+#         plt.axis('off')
+#         plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+# =============================================================================
+
 
 #recupère les valeurs associées à la caméra
 #mtx = matrice de la caméra avec focale + centre optique
@@ -56,5 +60,29 @@ for i,fname in enumerate(images):
 #rvecs = vecteur de rotation
 #tvecs = vecteur de translation
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
+
 np.savetxt("data/camDist2.txt", dist)
 np.savetxt("data/camMatrix2.txt", mtx)
+
+"""
+img = cv2.imread(images[2])
+plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+
+# undistort
+dst = cv2.undistort(img, mtx, dist, None)
+
+# crop the image
+plt.imshow(cv2.cvtColor(dst, cv2.COLOR_BGR2RGB))
+
+#Compute error
+mean_error = 0
+tot_error=0
+for i in range(len(objpoints)):
+    imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
+    error = cv2.norm(imgpoints[i],imgpoints2, cv2.NORM_L2)/len(imgpoints2)
+    tot_error += error
+    mean_error= tot_error/len(objpoints)
+
+print ("total error: ", mean_error)
+"""
+

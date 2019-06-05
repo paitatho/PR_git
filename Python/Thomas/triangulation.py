@@ -8,6 +8,7 @@ Created on Mon Mar  4 17:23:40 2019
 
 import cv2 
 from matplotlib import pyplot as plt
+import matplotlib.patches as patches
 import sys
 import numpy as np
 from sklearn.preprocessing import normalize
@@ -16,8 +17,10 @@ from sklearn.preprocessing import normalize
 
 def ptImage(image):
     plt.figure()
-    plt.axis("off")
+    plt.xticks(np.arange(0, image.shape[1], 50))
+    plt.yticks(np.arange(0, image.shape[0], 50))
     plt.imshow(image,'gray')
+    #plt.savefig('data/depth.png')
 
 def printImages(images, nbL, nbC):
     plt.figure(1)
@@ -32,23 +35,33 @@ def square(image):
     cv2.imshow("image",image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+#square : ligne, colonne, hauteur, largeur
+def drawSquare(im,squares,color='r'):
+    fig,ax = plt.subplots(1)
+    ax.imshow(im)
+    #                  Rectangle((j,i),largeur,hauteur,linewidth=1,edgecolor='r',facecolor='none')
+    for i in range(len(squares)):
+        rect = patches.Rectangle((squares[i][1],squares[i][0]),squares[i][3],squares[i][2],linewidth=2,edgecolor=color,facecolor='none')
+        ax.add_patch(rect)
+    plt.show()
  
 def getDisparity(imgL, imgR):
     # SGBM Parameters -----------------
-    window_size = 5                    # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
+    window_size = 3                    # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
      
     left_matcher = cv2.StereoSGBM_create(
         minDisparity=0,
-        numDisparities=160,             # max_disp has to be dividable by 16 f. E. HH 192, 256
-        blockSize=5,
+        numDisparities=16,             # max_disp has to be dividable by 16 f. E. HH 192, 256
+        blockSize=15,
         P1=8 * 3 * window_size ** 2,    # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
         P2=32 * 3 * window_size ** 2,
-        disp12MaxDiff=1,
+        disp12MaxDiff=-1,
         uniquenessRatio=15,
         speckleWindowSize=0,
         speckleRange=2,
         preFilterCap=63,
-        mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY
+        mode=cv2.STEREO_SGBM_MODE_HH 
     )
      
     right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
@@ -83,23 +96,25 @@ def getDisparity(imgL, imgR):
 
 
 #récupére les caractéristiques de la caméra calculé dans calibration.py
+
 cameraMatrix = np.loadtxt('data/camMatrix.txt')
+
 f = (cameraMatrix[0,0]+cameraMatrix[1,1]) / 2 # focale de la caméra
-t = 40 # distance entre les deux caméras 4cm
+t = 20 # distance entre les deux caméras en mm
 
 #charge image de gauche et de droite
-left = cv2.imread("data/left.jpg",0)
-right = cv2.imread("data/right.jpg",0)
+left = cv2.imread("data/left1.jpg",0)
+right = cv2.imread("data/right1.jpg",0)
 printImages([left,right], 1,2)
 
 # FACON 1 DE CALCULER MAP DES DISPARRITES
-stereo = cv2.StereoSGBM_create(numDisparities=16*2, blockSize=15)
+stereo = cv2.StereoSGBM_create(numDisparities=16, blockSize=7*7)
 disparity = stereo.compute(left,right)
 
 # FACON 2 DE CALCULER MAP DES DISPARRITES
 disparity = getDisparity(left,right)
-
 ptImage(disparity)
+#drawSquare(disparity,[[400,300,20,20]])
 
 #CALCUL MATRICE DES PROFONDEURS PAR PIXEL
 depthMap = np.zeros(disparity.shape)
@@ -107,6 +122,7 @@ depthMap = np.zeros(disparity.shape)
 mask = disparity[:,:] != 0
 depthMap[mask] = f*t /disparity[mask] 
 ptImage(depthMap)
+
 
 
 
