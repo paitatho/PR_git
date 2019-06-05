@@ -34,7 +34,7 @@ int main()
             pArgs = PyTuple_New(1);
     
             //conversion argument en type python
-            pValue = PyLong_FromLong(2);
+            pValue = PyLong_FromLong(3);
             if(!pValue){
 				Py_DECREF(pArgs);
 				Py_DECREF(pModule);
