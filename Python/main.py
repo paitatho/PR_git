@@ -9,6 +9,7 @@ Created on Mon Mar  4 17:23:40 2019
 from __future__ import print_function
 from imutils.video import VideoStream
 import numpy as np
+from scipy.optimize import root
 import datetime
 import imutils
 import time
@@ -16,18 +17,36 @@ import cv2
 
 def main(sweet):
 	"""
-	sweet: 	0: redbear
-		1: greenbear
+	sweet (int) =
+        0: redbear 
+		1: greenbear 
 		2: redcroco
 		3: greencroco
 		4: carambar
 	"""
+    
+    global arm_len    
+    arm_len = [14.5, 18.5, 11]
+    global pos
+    pos = np.array([0, arm_len[2]])
+
 	####	Prise des photos   ####
 	[left, right] = takepicture()	
 
 	####	Detection des objets   ####
 	detection(sweet, left, right)
-		
+
+
+    triangulation(left, right, )
+    
+    # Object position : depth = distance from robot (x-axis) and height (y-axis)
+    # We state y = 11 as we want to reach the object from a vertical position
+    # in order to remove Theta3 calculus from the reverse cinematic equation
+    pos[0] = depth
+
+	####	compute angles from positions   ####
+    compute_angles()
+
 	return [theta0, theta1, theta2, theta3]
 
 def takepicture():
@@ -185,6 +204,40 @@ def detection(sweet):
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()	
 
+
+# Todo : 
 		
 
+def func(theta):
+    f = [arm_len[0]*np.cos(theta[0]) + arm_len[1]*np.cos(sum(theta)) - pos[0], 
+         7 + arm_len[0]*np.sin(theta[0]) + arm_len[1]*np.sin(sum(theta)) - pos[1]] 
+    
+    df = np.array([
+        [-arm_len[0]*np.sin(theta[0]) - arm_len[1]*np.sin(sum(theta)), -arm_len[1]*np.sin(sum(theta))], 
+        [arm_len[0]*np.cos(theta[0]) + arm_len[1]*np.cos(sum(theta)), arm_len[1]*np.cos(sum(theta))]
+        ])
+
+    return f,df
+
+
+def compute_angles():
+    if pos[0] != -1:
+        # object exists and its distance from robot is pos[0]
+        sol = root(func, [0.5, 0.5], jac=True, method='hybr')
+        theta = np.round(sol.x, 3)
+        theta3 = - theta[0] + theta[1] + np.pi/2
+        # à vérifier ce premeir theta3
+        if theta[0] < 0:
+            r = np.linalg.norm(pos - np.array([0, 7]))
+            alpha = np.arcsin((pos[1]-7)/r)
+            theta[0] = - theta[0] + 2*alpha
+            theta[1] = - theta[1]
+            theta3 = - theta[0] - theta[1] - np.pi/2 
+            # <=> theta3 = theta[0] + theta[1] - 2*alpha - np.pi/2  
+        theta.append(theta3) # Add calculus of theta3
+        return theta 
+    else:
+        print("[INFO] back to initial position")
+        return [0,0] # à définir
+    
 
