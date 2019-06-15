@@ -83,7 +83,10 @@ def detection(sweet):
 	folderpath = "Quentin/Application/yolo-sweets"	
 	labelsPath = os.path.sep.join(folderpath, "sweets.names"])
 	LABELS = open(labelsPath).read().strip().split("\n")
-	 
+	
+    confidence_treshold = 0.5
+    nms_threshold = 0.3
+    
 	# derive the paths to the YOLO weights and model configuration
 	configPath = os.path.sep.join(folderpath, "sweets-tiny_v4.cfg"])
 	weightsPath = os.path.sep.join(folderpath, "sweets-tiny_v4_9400.weights"])
@@ -134,13 +137,14 @@ def detection(sweet):
 	end = time.time()
 
 	# show timing information on YOLO
-	print("[INFO] YOLO took {:.6f} seconds for left image".format(end - start))
+	print("[INFO] YOLO took {:.6f} seconds for right image".format(end - start))
 
-	# initialize our lists of detected bounding boxes, confidences, and
-	# class IDs, respectively
-	boxes = []
-	confidences = []
-	classIDs = []
+	# initialize our lists of detected bounding boxes, confidences,
+	# class IDs, and centers respectively
+	left_boxes = []
+	left_confidences = []
+	left_classIDs = []
+    left_centers = []
 
 	# loop over each of the layer outputs
 	for output in layerOutputs_left:
@@ -152,9 +156,10 @@ def detection(sweet):
 			classID = np.argmax(scores)
 			confidence = scores[classID]
 	 
-			# filter out weak predictions by ensuring the detected
+            # filter out other objects detections 
+			# and weak predictions by ensuring the detected
 			# probability is greater than the minimum probability
-			if confidence > args["confidence"]:
+			if classID == sweet and confidence > confidence_treshold:
 				# scale the bounding box coordinates back relative to the
 				# size of the image, keeping in mind that YOLO actually
 				# returns the center (x, y)-coordinates of the bounding
@@ -169,15 +174,61 @@ def detection(sweet):
 	 
 				# update our list of bounding box coordinates, confidences,
 				# and class IDs
-				boxes.append([x, y, int(width), int(height)])
-				confidences.append(float(confidence))
-				classIDs.append(classID)
-	    
+                left_boxes.append([x, y, int(width), int(height)])
+				left_confidences.append(float(confidence))
+				left_classIDs.append(classID)
+                left_centers.append([centerX, centerY])
 
-	# apply non-maxima suppression to suppress weak, overlapping bounding
+    # apply non-maxima suppression to suppress weak, overlapping bounding
 	# boxes
-	idxs = cv2.dnn.NMSBoxes(boxes, confidences, args["confidence"],
-		args["threshold"])
+	idxs = cv2.dnn.NMSBoxes(boxes, confidences, confidence_threshold, 
+                         nms_threshold)
+
+
+    # initialize our lists of detected bounding boxes, confidences,
+	# class IDs, and centers respectively
+	right_boxes = []
+	right_confidences = []
+	right_classIDs = []
+    right_centers = []
+
+	# loop over each of the layer outputs
+	for output in layerOutputs_right:
+		# loop over each of the detections
+		for detection in output:
+			# extract the class ID and confidence (i.e., probability) of
+			# the current object detection
+			scores = detection[5:]
+			classID = np.argmax(scores)
+			confidence = scores[classID]
+	 
+			# filter out weak predictions by ensuring the detected
+			# probability is greater than the minimum probability
+			if classID == sweet and confidence > confidence_threshold:
+				# scale the bounding box coordinates back relative to the
+				# size of the image, keeping in mind that YOLO actually
+				# returns the center (x, y)-coordinates of the bounding
+				# box followed by the boxes' width and height
+				box = detection[0:4] * np.array([W, H, W, H])
+				(centerX, centerY, width, height) = box.astype("int")
+	 
+				# use the center (x, y)-coordinates to derive the top and
+				# and left corner of the bounding box
+				x = int(centerX - (width / 2))
+				y = int(centerY - (height / 2))
+	 
+				# update our list of bounding box coordinates, confidences,
+				# and class IDs
+                right_centers.append([centerX, centerY])
+                right_boxes.append([x, y, int(width), int(height)])
+				right_confidences.append(float(confidence))
+				right_classIDs.append(classID)
+
+    # apply non-maxima suppression to suppress weak, overlapping bounding
+	# boxes
+	idxs = cv2.dnn.NMSBoxes(boxes, confidences, confidence_threshold, 
+                         nms_threshold)
+
 
 	# thickness of text / boxes
 	thickness = 1 + (H+W)//2000
@@ -190,22 +241,24 @@ def detection(sweet):
 			(x, y) = (boxes[i][0], boxes[i][1])
 			(w, h) = (boxes[i][2], boxes[i][3])
 	 
-			# draw a bounding box rectangle and label on the image
-			color = [int(c) for c in COLORS[classIDs[i]]]
 			cv2.rectangle(image, (x, y), (x + w, y + h), color, thickness)
 			text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
 			cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
 				thickness/4, color, thickness)
 	 
-	# show the output image
-	cv2.imwrite(args["image"][:-4]+"_out.jpg", image)
-	cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
-	cv2.imshow("Image", image)
-	cv2.waitKey(0)
-	cv2.destroyAllWindows()	
-
+# =============================================================================
+# 	# show the output image
+#  	cv2.imwrite(args["image"][:-4]+"_out.jpg", image)
+#  	cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
+#   cv2.imshow("Image", image)
+#   cv2.waitKey(0)
+#   cv2.destroyAllWindows()	
+# =============================================================================
 
 # Todo : 
+    # try to select the same objects from both detection
+
+
 		
 
 def func(theta):
