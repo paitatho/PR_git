@@ -23,8 +23,8 @@ enum PART
 	BASE = 0,
 	ARM1 =1,
 	ARM2=2,
-	
-	
+	ARM3=3,
+	HAND=4
 };
 
 
