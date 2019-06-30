@@ -29,7 +29,7 @@ def main(sweet):
     arm_len = [14.5, 18.5, 11]
     global pos
     pos = np.array([0, arm_len[2]])
-
+    
 	####	Prise des photos   ####
 	[left, right] = takepicture()	
 
@@ -293,4 +293,3 @@ def compute_angles():
         print("[INFO] back to initial position")
         return [0,0] # à définir
     
-
