@@ -24,40 +24,47 @@ def main(sweet):
 		4: carambar
     """
 
-    theta = []
+    theta = [0]*4
     
     global arm_len    
     arm_len = [14.5, 18.5, 11]
     global pos
     pos = np.array([0, arm_len[2]])
     
-	####	Prise des photos   ####
+	####	Caption   ####
     #[left, right] = takepicture()
     left = cv2.imread("Quentin/Application/data/leftDisto.png")
     right = cv2.imread("Quentin/Application/data/rightDisto.png")
 
-	####	Detection et choix de l'objet   ####
+	####	Detection and selection of the object   ####
     center = detection(left, right, sweet)
-
-    #### Décalage droite / gauche pour centrer le robot face à l'objet ####
-    # to do 
 
     # Object position : depth = distance from robot (x-axis) and height (y-axis)
     # We state y = 11 as we want to reach the object from a vertical position
     # in order to remove Theta3 calculus from the reverse cinematic equation
-    pos[0] = triangulation(left, right, center)
+    triangulation(left, right, center)
     
-	####	compute angles from positions   ####
-    theta.extend(compute_angles())
+    #### Left / right shift to center the robot in front of the objet ####
+    theta[0] = compute_shift(center)
 
-    print("[INFO] Theta final values : ", np.degrees(theta))
+	####	compute angles from positions   ####
+    theta[1:] = compute_angles()
+
+    # Motor control only understand positive angles
+    # besides, they  
+    theta[2] = np.pi - abs(theta[2])
+    theta[3] = np.pi - abs(theta[3])
+
+    theta = np.degrees(theta)
+
+    print("[INFO] Theta final values : ", theta)
 
     return theta
 
 def takepicture():
     print("[INFO] starting cameras...")
-    webcam0 = VideoStream(src=0).start()
-    webcam1 = VideoStream(src=1).start()
+    webcam0 = VideoStream(src=1).start()
+    webcam1 = VideoStream(src=2).start()
     time.sleep(0.5)
 
 	#### 	Capture des images   ####
@@ -74,20 +81,28 @@ def takepicture():
 	
     left  = cv2.undistort(frames[0], cameraMatrix, distMatrix, None)
     right = cv2.undistort(frames[1], cameraMatrix, distMatrix, None)
-	
+    
+    cv2.imwrite("Left.png", frames[0])
+    cv2.imwrite("Right.png", frames[1])
+    
     ####	libérer stream	  ####
     webcam0.stop()
     webcam1.stop()
     print("[INFO] ending cameras...")
-	
+
     return [left, right]
 
 
 def triangulation(left, right, center):
     # return depth from the point
-    return 20
+    pos[0] = 20
 
-
+def compute_shift(center):
+    shift = float(abs(240-center[0]))
+    sign = 1 if center[0] > 240 else -1
+    # sinus(a) = opposé / hypotenus
+    
+    return sign*(np.arcsin(shift/pos[0]))
 
 
 def detection(left, right, sweet):
@@ -238,10 +253,81 @@ def detection(left, right, sweet):
     right_idxs = cv2.dnn.NMSBoxes(right_boxes, right_confidences, confidence_threshold, 
                          nms_threshold)
 
+
+    # If we consider they have found the same objects
+    if len(left_idxs.flatten()) == len(right_idxs.flatten()):
+        # tri des boxes selon leur valeur de x
+        right_x_index = sorted(right_idxs.flatten(), key=lambda k: right_boxes[k][0])
+        left_x_index = sorted(left_idxs.flatten(), key=lambda k: left_boxes[k][0])
+        # On tri leurs index de manière à travailler sur la même box présumée
+        
+        # tri des confidences selon leur valeur
+        right_conf_index = sorted(right_idxs.flatten(), key=lambda k: right_confidences[k])
+        left_conf_index = sorted(left_idxs.flatten(), key=lambda k: left_confidences[k])
+
+        # On veut en prioriter travailler sur l'index dont la confidence est la plus haute
+        for k in range(len(right_conf_index)): 
+            if right_confidences[right_conf_index[k]] > left_confidences[left_conf_index[k]]:
+                max_ind = right_conf_index[k]
+                
+                # Si même position dans la liste triée selon la position des boites
+                # On suppose que ce sont les mêmes objets
+                if right_x_index.index(max_ind) == left_x_index.index(max_ind):
+                    return ((left_centers[max_ind][0]+right_centers[max_ind][0])//2, 
+                            (left_centers[max_ind][1]+right_centers[max_ind][1])//2)        
+            else:
+                max_ind = left_conf_index[k]
+                if right_x_index.index(max_ind) == left_x_index.index(max_ind):
+                    return ((left_centers[max_ind][0]+right_centers[max_ind][0])//2, 
+                            (left_centers[max_ind][1]+right_centers[max_ind][1])//2)        
+            
+
+# =============================================================================
+#     # We consider the object with the higher detection confidence
+#     # is the same on the both pictures
+#     couple_conf = np.zeros((len(left_idxs.flatten()), len(right_idxs.flatten())))
+#     for (n,i) in enumerate(left_idxs.flatten()):
+#         for (m,j) in enumerate(right_idxs.flatten()):
+#             couple_conf[n][m] = left_confidences[n] + right_confidences[m]
+# 
+#     # retrieving indices of the minimum distance value
+#     max_conf = np.where(couple_conf == np.amin(couple_conf))
+#     max_conf = list(zip(max_conf[0], max_conf[1]))
+# 
+#     # we just take the first one    
+#     for (n,m) in max_conf:
+#         # Middle from ( [xA, yA] , [xB,yB] )
+#         return ((left_centers[left_idxs.flatten()[n]][0]+right_centers[right_idxs.flatten()[m]][0])//2, 
+#                 (left_centers[left_idxs.flatten()[n]][1]+right_centers[right_idxs.flatten()[m]][1])//2)        
+# 
+# =============================================================================
+
+    # backup technique ? take the closest boxes ?
+    dist = np.zeros((len(left_idxs.flatten()), len(right_idxs.flatten())))
+    for (n,i) in enumerate(left_idxs.flatten()):
+        xi, yi = left_boxes[i][0], left_boxes[i][1]
+        wi, hi = left_boxes[i][2], left_boxes[i][3]
+        for (m,j) in enumerate(right_idxs.flatten()):
+            xj, yj = right_boxes[j][0], right_boxes[j][1]
+            wj, hj = right_boxes[j][2], right_boxes[j][3]
+            
+            dist[n][m] = np.sqrt(np.power(xj - xi, 2) + np.power(yj - yi, 2))
+
+    # retrieving indices of the minimum distance value
+    min_dist = np.where(dist == np.amin(dist))
+    min_dist = list(zip(min_dist[0], min_dist[1]))
+
+    # we just take the first one    
+    for (n,m) in min_dist:
+        # Middle from ( [xA, yA] , [xB,yB] )
+        return ((left_centers[left_idxs.flatten()[n]][0]+right_centers[right_idxs.flatten()[m]][0])//2, 
+                (left_centers[left_idxs.flatten()[n]][1]+right_centers[right_idxs.flatten()[m]][1])//2)
+
+
     # we consider they have found the same objects
     if len(left_idxs.flatten()) == len(right_idxs.flatten()):
         # vertical distance from two boxes
-        vertical_dist = np.zeros((len(left_idxs.flatten()), len(right_idxs.flatten())))
+        dist = np.zeros((len(left_idxs.flatten()), len(right_idxs.flatten())))
         for (n,i) in enumerate(left_idxs.flatten()):
             xi, yi = left_boxes[i][0], left_boxes[i][1]
             wi, hi = left_boxes[i][2], left_boxes[i][3]
@@ -249,14 +335,14 @@ def detection(left, right, sweet):
                 xj, yj = right_boxes[j][0], right_boxes[j][1]
                 wj, hj = right_boxes[j][2], right_boxes[j][3]
                 
-                vertical_dist[n][m] = np.power(yj - yi, 2)
+                dist[n][m] = np.sqrt(np.power(xj - xi, 2) + np.power(yj - yi, 2))
 
         # retrieving indices of the minimum distance value
-        res = np.where(vertical_dist == np.amin(vertical_dist))
-        res = list(zip(res[0], res[1]))
-    
+        min_dist = np.where(dist == np.amin(dist))
+        min_dist = list(zip(min_dist[0], min_dist[1]))
+
         # we just take the first one    
-        for (n,m) in res:
+        for (n,m) in min_dist:
             # Middle from ( [xA, yA] , [xB,yB] )
             return ((left_centers[left_idxs.flatten()[n]][0]+right_centers[right_idxs.flatten()[m]][0])//2, 
                     (left_centers[left_idxs.flatten()[n]][1]+right_centers[right_idxs.flatten()[m]][1])//2)
