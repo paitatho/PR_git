@@ -10,6 +10,7 @@
 #include <vector>
 
 #define DEFAULT_TIME 2000
+#define DEFAULT_SPEED 1000
 
 enum RET
 {
@@ -20,12 +21,24 @@ enum RET
 
 enum PART
 {
-	BASE = 0,
-	ARM1 =1,
-	ARM2=2,
-	ARM3=3,
-	HAND=4
+	HAND=0,
+	ROT_HAND=1,
+	ARM3= 2,
+	ARM2= 3,
+	ARM1 = 4,
+	BASE = 5
 };
 
+enum CHOICE
+{
+	RED_BEAR=0,
+	GREEN_BEAR=1,
+	RED_CROCO= 2,
+	GREEN_CROCO= 3,
+	CARAMBAR = 4,
+	UNKNOW =5
+};
+
+std::string enumToString(CHOICE c);
 
 #endif

@@ -19,7 +19,18 @@ class Servo
 		unsigned short int pin;
 		//liaison pour communiquer avec la carte
 		static Serial sscUart;
+		unsigned int currentAngle;	//angle en degré 
+
+
 	public:
+		/* CONSTRUCTEURS:
+		 * p = pin associé au servo moteur
+		 * d = valeur par défaut utilisée à l'initialisation
+		 * mi = angle min que peut prendre le moteur (contrainte physique 
+		 * 		lié au montage du bras de robot)
+		 * ma = angle max que peut prendre le moteur (contrainte physique 
+		 * 		lié au montage du bras de robot)
+		 */ 
 	
 		Servo(unsigned int p):min(500),max(2500),defaut(1500),pin(p)
 		{
@@ -28,12 +39,17 @@ class Servo
 		
 		Servo(unsigned int p,unsigned int d ):min(500),max(2500),pin(p)
 		{
-			if(d >= min && d<=max)
-				defaut= d;
-			else 
-				defaut = 1500;
+			setDefault(d);
 			current = getPulseWidth()*10;
 		}
+		Servo(unsigned int p,unsigned int d,unsigned int mi ,unsigned int ma):min(500),max(2500),pin(p)
+		{
+			setDefault(d);
+			setMin(mi);
+			setMax(ma);
+			current = getPulseWidth()*10;
+		}
+		
 		
 		//fonction temporaire de test
 		void test(){}
@@ -43,7 +59,7 @@ class Servo
 		
 		//permet de savoir si l'action envoyé est finie
 		//0 : en cours, 1: finie, 2: pas de message, 3: message inconnu 
-		unsigned short int done();
+		static unsigned short int done();
 
 		//stop le moteur
 		void stop();
@@ -54,11 +70,20 @@ class Servo
 		//
 		int getPulseWidth();
 		
+		int getCurrent(){
+			//current = getPulseWidth()*10;
+			return current;
+		}
+		
 		static Serial* getSsc(){
 			return &sscUart;
 		}
 		
 		static void init(std::vector<Servo> s);
+		
+		void setDefault(unsigned int d);
+		void setMin(unsigned int m);
+		void setMax(unsigned int m);
 };
 
 #endif

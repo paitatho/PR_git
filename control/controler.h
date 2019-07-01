@@ -14,6 +14,9 @@ class Controler
 {
 	private:
 		std::vector<Servo> servos;
+		unsigned int arm1Angle;
+		unsigned int arm2Angle;
+		unsigned int arm3Angle;
 	public:
 	
 		Controler();
@@ -48,10 +51,7 @@ class Controler
 		 * le flêche droite et gauche permettent respectivement 
 		 * d'augmenter ou de réduire l'angle d'un moteur
 		 */ 
-		void keyboardControl()
-		{
-			
-		}	
+		void keyboardControl();
 };
 
 /*
@@ -65,13 +65,21 @@ class Command
 	public:
 		Command():cmd(""){}
 		
+		Command(int pin,int power)
+		{
+			setPinPower(pin,power);
+			setCarriageReturn();
+		}
+		
 		//pin : le pin du servo qu'on désire commander
 		//power: l'angle au format SSC (500 à 2500) lire la docu
 		//time: le temps accordé pour ce dépacement 
-		Command(int pin,int power,int time= DEFAULT_TIME)
+		Command(int pin,int power,int time)
 		{
 			setPinPower(pin,power);
-			setTime(time);
+			//setTime(time);
+			setSpeed();
+			setCarriageReturn();
 		}
 		
 		void setPinPower(int pin,int power){
@@ -79,7 +87,14 @@ class Command
 		}
 		
 		void setTime(int time){
-			cmd +="T"+std::to_string(time)+ "\r";
+			cmd +="T"+std::to_string(time);
+		}
+		
+		void setSpeed(int speed=DEFAULT_SPEED){
+			cmd +="S"+std::to_string(speed);
+		}
+		void setCarriageReturn(){
+			cmd +="\r";
 		}
 		
 		std::string getStr(){return cmd;}
