@@ -10,8 +10,8 @@ import cv2
  
 # initialize the video streams and allow them to warmup
 print("[INFO] starting cameras...")
-webcam0 = VideoStream(src=1).start()
-webcam1 = VideoStream(src=2).start()
+webcam0 = VideoStream(src=0).start()
+webcam1 = VideoStream(src=1).start()
 time.sleep(1.0)
  
 # number of frames read
@@ -28,6 +28,7 @@ while True:
 		# it to have a maximum width of 400 pixels
 		frame = stream.read()
 		frame = cv2.resize(frame, (640,480))
+		frame = np.flipud(frame)
 		frames.append(frame)
 
 	# increment the total number of frames read and grab the 
@@ -36,7 +37,7 @@ while True:
 	ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
  
 	# loop over the frames a second time
-	for (frame, name) in zip(frames, ("Webcam0", "Webcam1")):
+    for (frame, name) in zip(frames, ("Webcam0", "Webcam1")):
 		# draw the timestamp on the frame and display it
 		cv2.imshow(name, frame)
 	

@@ -39,7 +39,19 @@ def main(sweet, depth):
     pos = np.array([0, arm_len[2]])
     
 	####	Caption   ####
-    [left, right] = takepicture()
+    [left, right,leftDist,rightDist] = takepicture()
+    for (frame, name) in zip([left, right], ("Webcam0", "Webcam1")):
+        # draw the timestamp on the frame and display it
+        cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
+        cv2.imshow("Image", image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        cv2.imshow(name, frame)
+        cv2.waitKey(25)
+
+
+    
+    #key = cv2.waitKey(1)
 # =============================================================================
 #     left = cv2.imread(os.path.sep.join([os.getcwd(),"Quentin/Application/data/leftDisto.png"]))
 #     right = cv2.imread(os.path.sep.join([os.getcwd(),"Quentin/Application/data/rightDisto.png"]))
@@ -75,15 +87,16 @@ def main(sweet, depth):
     theta[2:] = np.degrees(theta[2:])
 
     print("[PYTHON] Theta final values : ", list(map(int, theta)))
+    cv2.destroyAllWindows()
 
     return list(map(int, theta))
 
 def takepicture():
     print("[PYTHON] starting cameras...")
     # left_cam
-    webcam0 = VideoStream(src=0).start()
+    webcam0 = VideoStream(src=0).start()	#gauche
     # right_cam
-    webcam1 = VideoStream(src=1).start()
+    webcam1 = VideoStream(src=1).start()	#gauche
 
     print("[PYTHON] cameras started...")
     time.sleep(0.5)
@@ -94,6 +107,7 @@ def takepicture():
         # read the next frame from the video stream and resize
         frame = stream.read()
         frame = cv2.resize(frame,(640,480))
+        frame = np.flipud(frame)
         frames.append(frame)
 	
 	####	correction des distortions    ####
@@ -121,7 +135,7 @@ def takepicture():
     webcam1.stop()
     print("[PYTHON] ending cameras...")
 
-    return [left, right]
+    return [left, right,frames[0],frames[1]]
 
 
 def triangulation(left, right, center):
@@ -211,7 +225,11 @@ def detection(left, right, sweet):
     folderpath = path + "Quentin/Application/yolo-sweets"	
     labelsPath = os.path.sep.join([folderpath, "sweets.names"])
     LABELS = open(labelsPath).read().strip().split("\n")
-    confidence_threshold = 0.5
+    # initialize a list of colors to represent each possible class label
+    np.random.seed(42)
+    COLORS = np.random.randint(0, 255, size=(len(LABELS), 3),
+	
+	dtype="uint8")confidence_threshold = 0.5
     nms_threshold = 0.3
 
 	# derive the paths to the YOLO weights and model configuration
@@ -310,6 +328,24 @@ def detection(left, right, sweet):
     left_idxs = cv2.dnn.NMSBoxes(left_boxes, left_confidences, confidence_threshold, 
                          nms_threshold)
 
+    # ensure at least one detection exists
+    if len(left_idxs) > 0:
+	    # loop over the indexes we are keeping
+	    for i in left_idxs.flatten():
+			# extract the bounding box coordinates
+            (x, y) = (left_boxes[i][0], left_boxes[i][1])
+            (w, h) = (left_boxes[i][2], left_boxes[i][3])
+	 
+            # draw a bounding box rectangle and label on the image
+            color = [int(c) for c in COLORS[classIDs[i]]]
+            cv2.rectangle(image, (x, y), (x + w, y + h), color, thickness)
+            text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
+            cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
+				3, color, thickness)
+				
+
+
+
 
     # initialize our lists of detected bounding boxes, confidences,
 	# class IDs, and centers respectively
@@ -359,51 +395,43 @@ def detection(left, right, sweet):
 
     # If we consider they have found the same objects
     if len(left_idxs.flatten()) == len(right_idxs.flatten()):
+        print("[PYTHON] Selecting boxes ... ")
+        
         # tri des boxes selon leur valeur de x
-        right_x_index = sorted(right_idxs.flatten(), key=lambda k: right_boxes[right_idxs.flatten()[k]][0])
-        left_x_index = sorted(left_idxs.flatten(), key=lambda k: left_boxes[left_idxs.flatten()[k]][0])        
+        right_x_index = sorted(right_idxs.flatten(), key=lambda k: right_boxes[k][0])
+        left_x_index = sorted(left_idxs.flatten(), key=lambda k: left_boxes[k][0])        
         # On tri leurs index de manière à travailler sur la même box présumée
                 
-        # tri des confidences selon leur valeur
         right_conf_index = sorted(right_idxs.flatten(), reverse=True, key=lambda k: right_confidences[k])
-        left_conf_index = sorted(left_idxs.flatten(), reverse=True, key=lambda k: left_confidences[k])
+        left_conf_index = sorted(left_idxs.flatten(), reverse=True, key=lambda k: left_confidences[k])        
 
         # On veut en prioriter travailler sur l'index dont la confidence est la plus haute
-        for k in range(len(right_conf_index)): 
-            if right_confidences[right_conf_index[k]] > left_confidences[left_conf_index[k]]:
-                max_idx = right_conf_index[k]
-                idx_to_compare = right_x_index.index(right_conf_index[k])                    
-                xil = left_boxes[max_idx][0]
-                xir = left_boxes[max_idx][0] + right_boxes[max_idx][2]
-                xjl = right_boxes[max_idx][0]
-                xjr = right_boxes[max_idx][0] + right_boxes[max_idx][2]
-                # Si même position dans la liste triée selon la position des boites
-                # On suppose que ce sont les mêmes objets
-                if right_x_index.index(idx_to_compare) == left_x_index.index(idx_to_compare):                    
-                    if ((xil+xjl)//2 < 320) and ((xir+xjr)//2 > 320):
-                        do_shift = False
-                    else:
-                        do_shift = True 
-                        
-                    return ((left_centers[max_idx][0]+right_centers[max_idx][0])//2, 
-                            (left_centers[max_idx][1]+right_centers[max_idx][1])//2),do_shift
-            else:
-                max_idx = left_conf_index[k]
-                idx_to_compare = left_x_index.index(left_conf_index[k])                    
-                xil = left_boxes[max_idx][0]
-                xir = left_boxes[max_idx][0] + right_boxes[max_idx][2]
-                xjl = right_boxes[max_idx][0]
-                xjr = right_boxes[max_idx][0] + right_boxes[max_idx][2]
+        for k in range(len(right_conf_index)): # == range(len(left_conf_index))
+            r_max_idx = right_conf_index[k]
+            l_max_idx = left_conf_index[k]
+            r_idx_to_compare = right_x_index.index(r_max_idx)                    
+            l_idx_to_compare = left_x_index.index(l_max_idx)                    
 
-                if right_x_index.index(left_conf_index[k]) == left_x_index.index(left_conf_index[k]):
-                    if ((xil+xjl)//2 < 320) and ((xir+xjr)//2 > 320):
-                        do_shift = False
-                    else:
-                        do_shift = True 
+            xil = left_boxes[l_max_idx][0]
+            xir = left_boxes[l_max_idx][0] + left_boxes[l_max_idx][2] 
+            xjl = right_boxes[r_max_idx][0]
+            xjr = right_boxes[r_max_idx][0] + right_boxes[r_max_idx][2]
 
-                    return ((left_centers[max_idx][0]+right_centers[max_idx][0])//2, 
-                            (left_centers[max_idx][1]+right_centers[max_idx][1])//2),do_shift
+            # Si même position dans la liste triée selon la position des boites
+            # On suppose que ce sont les mêmes objets
             
+            if r_idx_to_compare == l_idx_to_compare:                    
+                if ((xil+xjl)//2 < 320) and ((xir+xjr)//2 > 320):
+                    do_shift = False        
+                else:
+                    do_shift = True 
+					
+                return ((left_centers[l_max_idx][0]+right_centers[r_max_idx][0])//2, 
+						(left_centers[l_max_idx][1]+right_centers[r_max_idx][1])//2),do_shift
+
+        print("[PYTHON] Fail selection ... ")		
+        return (-1, -1), False
+
 # =============================================================================
 #     # We consider the object with the higher detection confidence
 #     # is the same on the both pictures
