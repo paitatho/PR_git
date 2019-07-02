@@ -10,8 +10,8 @@ import cv2
  
 # initialize the video streams and allow them to warmup
 print("[INFO] starting cameras...")
-webcam0 = VideoStream(src=0).start()
-webcam1 = VideoStream(src=1).start()
+webcam0 = VideoStream(src=1).start()
+webcam1 = VideoStream(src=2).start()
 time.sleep(2.0)
  
 # number of frames read
@@ -50,16 +50,19 @@ while True:
  
 	# loop over the frames a second time
 	for (frame, name) in zip(frames, ("Webcam0", "Webcam1")):
-		# draw the timestamp on the frame and display it
-		cv2.imshow(name, frame)
-	
-	# check to see if a key was pressed
+        # draw the timestamp on the frame and display it
+        cv2.imshow(name, frame)
+        cv2.imwrite(name, frame)
+        
+    # check to see if a key was pressed
 	key = cv2.waitKey(1) # & 0xFF
  
 	# if the `q` key was pressed, break from the loop
 	if key == ord("q"):
 		break
-
+    elif key == ord(" "):
+        cv2.imwrite(name, frame)
+        
 # do a bit of cleanup
 print("[INFO] cleaning up...")
 cv2.destroyAllWindows()

@@ -53,7 +53,7 @@ def getDisparity(imgL, imgR,n=1):
     left_matcher = cv2.StereoSGBM_create(
         minDisparity=0,
         numDisparities=16*n,             # max_disp has to be dividable by 16 f. E. HH 192, 256
-        blockSize=15,
+        blockSize=5,
         P1=8 * 3 * window_size ** 2,    # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
         P2=32 * 3 * window_size ** 2,
         disp12MaxDiff=-1,
@@ -61,7 +61,8 @@ def getDisparity(imgL, imgR,n=1):
         speckleWindowSize=0,
         speckleRange=2,
         preFilterCap=63,
-        mode=cv2.STEREO_SGBM_MODE_HH 
+        #mode=cv2.STEREO_SGBM_MODE_HH 
+        mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY
     )
      
     right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
@@ -90,6 +91,32 @@ def getDisparity(imgL, imgR,n=1):
 # =============================================================================
     return filteredImg
 
+
+
+# disparity settings
+window_size = 5
+min_disp = 32
+num_disp = 112-min_disp
+stereo = cv2.StereoSGBM(
+    minDisparity = min_disp,
+    numDisparities = num_disp,
+    SADWindowSize = window_size,
+    uniquenessRatio = 10,
+    speckleWindowSize = 100,
+    speckleRange = 32,
+    disp12MaxDiff = 1,
+    P1 = 8*3*window_size**2,
+    P2 = 32*3*window_size**2,
+    fullDP = False
+)
+ 
+# morphology settings
+kernel = np.ones((12,12),np.uint8)
+ 
+disparity = stereo.compute(left,right).astype(np.float32) / 16.0
+disparity = (disparity-min_disp)/num_disp
+
+threshold = cv2.threshold(disparity, 0.6, 1.0, cv2.THRESH_BINARY)[1]
 ############# Fin fonctions
 
 
@@ -101,24 +128,25 @@ cameraMatrix = np.loadtxt('data/camMatrix.txt')
 distMatrix = np.loadtxt('data/camDist.txt')
 
 f = (cameraMatrix[0,0]+cameraMatrix[1,1]) / 2 # focale de la caméra
-t = 20 # distance entre les deux caméras en mm
+t = 34 # distance entre les deux caméras en mm
 
 #charge image de gauche et de droite
 left = cv2.imread("data/left0.png",0)
 right = cv2.imread("data/right0.png",0)
 printImages([left,right], 1,2)
 
-left = cv2.undistort(left, mtx, dist, None)
-right = cv2.undistort(right, mtx, dist, None)
+left = cv2.undistort(left, cameraMatrix, distMatrix, None)
+right = cv2.undistort(right, cameraMatrix, distMatrix, None)
 
 printImages([left,right], 1,2)
 
 # FACON 1 DE CALCULER MAP DES DISPARRITES
 stereo = cv2.StereoSGBM_create(numDisparities=16, blockSize=7*7)
 disparity = stereo.compute(left,right)
+ptImage(disparity)
 
 # FACON 2 DE CALCULER MAP DES DISPARRITES
-disparity = getDisparity(right,left,1)
+disparity = getDisparity(left,right,1)
 ptImage(disparity)
 #drawSquare(disparity,[[400,300,20,20]])
 
