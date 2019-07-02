@@ -170,7 +170,7 @@ def triangulation(left, right, center):
     filteredImg = cv2.normalize(src=filteredImg, dst=filteredImg, beta=0, alpha=255, norm_type=cv2.NORM_MINMAX);
     filteredImg = np.uint8(filteredImg)
     #cv2.imshow('Disparity Map', filteredImg)
-    disp = ((disp.astype(np.float32)/ 16)-min_disp)/num_disp # Calculation allowing us to have 0 for the most distant object able to detect
+    #disp = ((disp.astype(np.float32)/ 16)-min_disp)/num_disp # Calculation allowing us to have 0 for the most distant object able to detect
 
     left_cameraMatrix = np.loadtxt(path+'Quentin/Triangulation/camMatrixL.txt')
     right_cameraMatrix = np.loadtxt(path+'Quentin/Triangulation/camMatrixR.txt')
@@ -180,7 +180,7 @@ def triangulation(left, right, center):
     # Distance between the 2 cameras (in millimeters)
     t = 34 
 
-    depthMap = np.zeros(disp.shape)
+    depthMap = np.zeros(filteredImg.shape)
     mask = disp[:,:] != 0
     depthMap[mask] = f*t / disp[mask]
 
@@ -360,47 +360,49 @@ def detection(left, right, sweet):
     # If we consider they have found the same objects
     if len(left_idxs.flatten()) == len(right_idxs.flatten()):
         # tri des boxes selon leur valeur de x
-        right_x_index = sorted(right_idxs.flatten(), key=lambda k: right_boxes[k][0])
-        left_x_index = sorted(left_idxs.flatten(), key=lambda k: left_boxes[k][0])
+        right_x_index = sorted(right_idxs.flatten(), key=lambda k: right_boxes[right_idxs.flatten()[k]][0])
+        left_x_index = sorted(left_idxs.flatten(), key=lambda k: left_boxes[left_idxs.flatten()[k]][0])        
         # On tri leurs index de manière à travailler sur la même box présumée
-        
+                
         # tri des confidences selon leur valeur
-        right_conf_index = sorted(right_idxs.flatten(), key=lambda k: right_confidences[k])
-        left_conf_index = sorted(left_idxs.flatten(), key=lambda k: left_confidences[k])
+        right_conf_index = sorted(right_idxs.flatten(), reverse=True, key=lambda k: right_confidences[k])
+        left_conf_index = sorted(left_idxs.flatten(), reverse=True, key=lambda k: left_confidences[k])
 
         # On veut en prioriter travailler sur l'index dont la confidence est la plus haute
         for k in range(len(right_conf_index)): 
             if right_confidences[right_conf_index[k]] > left_confidences[left_conf_index[k]]:
-                max_ind = right_conf_index[k]                    
-                xil = left_boxes[max_ind][0]
-                xir = left_boxes[max_ind][0] + right_boxes[max_ind][2]
-                xjl = right_boxes[max_ind][0]
-                xjr = right_boxes[max_ind][0] + right_boxes[max_ind][2]
+                max_idx = right_conf_index[k]
+                idx_to_compare = right_x_index.index(right_conf_index[k])                    
+                xil = left_boxes[max_idx][0]
+                xir = left_boxes[max_idx][0] + right_boxes[max_idx][2]
+                xjl = right_boxes[max_idx][0]
+                xjr = right_boxes[max_idx][0] + right_boxes[max_idx][2]
                 # Si même position dans la liste triée selon la position des boites
                 # On suppose que ce sont les mêmes objets
-                if right_x_index.index(max_ind) == left_x_index.index(max_ind):                    
+                if right_x_index.index(idx_to_compare) == left_x_index.index(idx_to_compare):                    
                     if ((xil+xjl)//2 < 320) and ((xir+xjr)//2 > 320):
                         do_shift = False
                     else:
                         do_shift = True 
                         
-                    return ((left_centers[max_ind][0]+right_centers[max_ind][0])//2, 
-                            (left_centers[max_ind][1]+right_centers[max_ind][1])//2),do_shift
+                    return ((left_centers[max_idx][0]+right_centers[max_idx][0])//2, 
+                            (left_centers[max_idx][1]+right_centers[max_idx][1])//2),do_shift
             else:
-                max_ind = left_conf_index[k]
-                xil = left_boxes[max_ind][0]
-                xir = left_boxes[max_ind][0] + right_boxes[max_ind][2]
-                xjl = right_boxes[max_ind][0]
-                xjr = right_boxes[max_ind][0] + right_boxes[max_ind][2]
+                max_idx = left_conf_index[k]
+                idx_to_compare = left_x_index.index(left_conf_index[k])                    
+                xil = left_boxes[max_idx][0]
+                xir = left_boxes[max_idx][0] + right_boxes[max_idx][2]
+                xjl = right_boxes[max_idx][0]
+                xjr = right_boxes[max_idx][0] + right_boxes[max_idx][2]
 
-                if right_x_index.index(max_ind) == left_x_index.index(max_ind):
+                if right_x_index.index(left_conf_index[k]) == left_x_index.index(left_conf_index[k]):
                     if ((xil+xjl)//2 < 320) and ((xir+xjr)//2 > 320):
                         do_shift = False
                     else:
                         do_shift = True 
 
-                    return ((left_centers[max_ind][0]+right_centers[max_ind][0])//2, 
-                            (left_centers[max_ind][1]+right_centers[max_ind][1])//2),do_shift
+                    return ((left_centers[max_idx][0]+right_centers[max_idx][0])//2, 
+                            (left_centers[max_idx][1]+right_centers[max_idx][1])//2),do_shift
             
 # =============================================================================
 #     # We consider the object with the higher detection confidence
