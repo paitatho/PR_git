@@ -4,13 +4,13 @@
 
 /*
  * Produit en croix pour savoir ce que représente l'angle dans la forme
- * utilisé par la carte ssc. 2500 -> 180° 
+ * utilisé par la carte ssc. 2000 -> 180° 
  * On ajoute la valeur à la position courante pour faire, si possible,
  * la rotation du bon angle.
  */ 
 
 #define angleToSsc(angle, current) \
-		( current + (angle * 2500 /180) )
+		( current + (angle * 2000 /180) )
 
 //"/dev/ttyAMA0",9600
 using namespace std;
@@ -21,11 +21,12 @@ Controler::Controler()
 	servos.push_back(Servo(0,837));  	//main
 	servos.push_back(Servo(3,1331));	//poignet
 	servos.push_back(Servo(6,867));		//bras3
-	servos.push_back(Servo(8,2247));	//bras2	
+	servos.push_back(Servo(8,2093));	//bras2	
 	servos.push_back(Servo(12,2023));	//bras1
+	servos.push_back(Servo(15));		//base
 	
 	arm1Angle = 135;   // angle entre bras 1 et le sol
-	arm2Angle = 45;    // angle entre bras 1 et bras 2
+	arm2Angle = 60;    // angle entre bras 1 et bras 2
 	arm3Angle = 90;    // angle entre bras 2 et bras 3
 
 	//initialise les servos moteurs 
@@ -45,29 +46,51 @@ void Controler::waitForDone(){
 
 
 RET Controler::moveBase(int angle){
-	return servos[1].move(angleToSsc(angle, servos[1].current));
+	
+	if(servos[PART::BASE].move(angleToSsc(angle, servos[PART::BASE].current)) !=NORM)
+		return ERROR;
+	else
+		waitForDone();
+	
+	return NORM;
 }
 
 RET Controler::moveArm(int angle1,int angle2)
 {
+	
+	//##### BRAS 2	
+	
+	int angleTmp = arm2Angle - angle2;
+	
+	//cout << "angleCourant : "<<servos[PART::ARM2].current;
+	//cout << "angleSsc : "<<angleToSsc(angleTmp, servos[PART::ARM2].current)<<endl;
+	
+	if(servos[PART::ARM2].move(angleToSsc(angleTmp, servos[PART::ARM2].current)) !=NORM)
+		return ERROR;
+	else{
+		cout<<"    bras 2 : " << angleTmp<<"°  "<<endl;
+		waitForDone();
+	}	
+	arm2Angle = angle2;
+	
 	//##### BRAS 1
 	
 	//différence entre l'angle qu'il faut avoir et le notre
-	int angleTmp = arm1Angle - angle1;
+	 angleTmp = -(arm1Angle - angle1);
+	
+	//cout<< "	angleCourant : "<<servos[PART::ARM1].current;
+	//cout<< "	angleSsc : "<<angleToSsc(angleTmp, servos[PART::ARM1].current)<<endl;
 	
 	if(servos[PART::ARM1].move(angleToSsc(angleTmp, servos[PART::ARM1].current)) !=NORM)
 		return ERROR;
+	else{
+		cout<<"    bras 1 : " << angleTmp<<"°  "<<endl;
+		waitForDone();
+	}
 		
 	arm1Angle = angle1;
 
-	//##### BRAS 2	
-	
-	//inverse car le moteur est monté dans l'autre sens
-	angleTmp = -(arm2Angle - angle2);
-	if(servos[PART::ARM2].move(angleToSsc(angleTmp, servos[PART::ARM2].current)) !=NORM)
-		return ERROR;
-	
-	arm2Angle = angle2;
+
 	
 	return NORM;
 }

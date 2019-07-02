@@ -77,8 +77,8 @@ class Command
 		Command(int pin,int power,int time)
 		{
 			setPinPower(pin,power);
-			//setTime(time);
-			setSpeed();
+			setTime(time);
+			//setSpeed();
 			setCarriageReturn();
 		}
 		

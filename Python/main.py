@@ -23,7 +23,9 @@ def main(sweet, depth):
 		3: greencroco
 		4: carambar
     """
-
+    print("   ... python exec ...\n")
+    global path
+    path = "/home/pi/Desktop/rasp/PR_git/Python/"
     theta = [0]*5
     # theta[0] : indicates if an object has been detected
     # theta[1] : base rotation
@@ -67,8 +69,8 @@ def main(sweet, depth):
 
     # Motor control only understand positive angles
     # besides, they  
-    theta[3] = np.pi - abs(theta[2])
-    theta[4] = np.pi - abs(theta[3])
+    theta[3] = np.pi - abs(theta[3])
+    theta[4] = np.pi - abs(theta[4])
 
     theta[2:] = np.degrees(theta[2:])
 
@@ -102,17 +104,17 @@ def takepicture():
 #     right = cv2.undistort(frames[1], cameraMatrix, distMatrix, None)
 # =============================================================================
 
-    left_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixL.txt')
-    left_distMatrix = np.loadtxt('Quentin/Triangulation/camDistL.txt')
+    left_cameraMatrix = np.loadtxt(path+'Quentin/Triangulation/camMatrixL.txt')
+    left_distMatrix = np.loadtxt(path+'Quentin/Triangulation/camDistL.txt')
 
-    right_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixR.txt')
-    right_distMatrix = np.loadtxt('Quentin/Triangulation/camDistR.txt')
+    right_cameraMatrix = np.loadtxt(path+'Quentin/Triangulation/camMatrixR.txt')
+    right_distMatrix = np.loadtxt(path+'Quentin/Triangulation/camDistR.txt')
 
     left  = cv2.undistort(frames[0], left_cameraMatrix, left_distMatrix, None)
     right = cv2.undistort(frames[1], right_cameraMatrix, right_distMatrix, None)
 
-    cv2.imwrite('Quentin/Triangulation/data/left_new_undisto.png', left)
-    cv2.imwrite('Quentin/Triangulation/data/right_new_undisto.png', right)
+    cv2.imwrite(path+'Quentin/Triangulation/data/left_new_undisto.png', left)
+    cv2.imwrite(path+'Quentin/Triangulation/data/right_new_undisto.png', right)
     
     ####	libérer stream	  ####
     webcam0.stop()
@@ -170,8 +172,8 @@ def triangulation(left, right, center):
     #cv2.imshow('Disparity Map', filteredImg)
     disp = ((disp.astype(np.float32)/ 16)-min_disp)/num_disp # Calculation allowing us to have 0 for the most distant object able to detect
 
-    left_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixL.txt')
-    right_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixR.txt')
+    left_cameraMatrix = np.loadtxt(path+'Quentin/Triangulation/camMatrixL.txt')
+    right_cameraMatrix = np.loadtxt(path+'Quentin/Triangulation/camMatrixR.txt')
 
     # Camera focal
     f = (left_cameraMatrix[0,0]+left_cameraMatrix[1,1])/2.0 + (right_cameraMatrix[0,0]+right_cameraMatrix[1,1])/2.0
@@ -182,8 +184,8 @@ def triangulation(left, right, center):
     mask = disp[:,:] != 0
     depthMap[mask] = f*t / disp[mask]
 
-    cv2.imwrite('Quentin/Triangulation/data/disp_test.png', filteredImg)
-    cv2.imwrite('Quentin/Triangulation/data/depthMap_test.png', depthMap)
+    cv2.imwrite(path+'Quentin/Triangulation/data/disp_test.png', filteredImg)
+    cv2.imwrite(path+'Quentin/Triangulation/data/depthMap_test.png', depthMap)
 
     return depthMap[center]    
 
@@ -206,7 +208,7 @@ def compute_shift(center):
     
 def detection(left, right, sweet):
     print("[PYTHON] starting detection...")
-    folderpath = "Quentin/Application/yolo-sweets"	
+    folderpath = path + "Quentin/Application/yolo-sweets"	
     labelsPath = os.path.sep.join([folderpath, "sweets.names"])
     LABELS = open(labelsPath).read().strip().split("\n")
     confidence_threshold = 0.5
@@ -353,7 +355,7 @@ def detection(left, right, sweet):
                          nms_threshold)
 
     if (len(right_idxs) == 0) or (len(left_idxs) == 0):
-        return (-1,-1)
+        return (-1,-1), False
 
     # If we consider they have found the same objects
     if len(left_idxs.flatten()) == len(right_idxs.flatten()):
@@ -522,6 +524,7 @@ def func(theta):
 
 def compute_angles():
     if pos[0] != -1:
+        print("[PYTHON] Reverse Cinematic ... ")
         # object exists and its distance from robot is pos[0]
         sol = root(func, [0.5, 0.5], jac=True, method='hybr')        
         theta = np.around(sol.x, 3).tolist()
@@ -541,6 +544,4 @@ def compute_angles():
     else:
         print("[PYTHON] back to initial position")
         return [0,0,0] # à définir
-    
 
-main(2, 22)
