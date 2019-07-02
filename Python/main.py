@@ -14,7 +14,7 @@ import time
 import numpy as np
 from scipy.optimize import root
 
-def main(sweet):
+def main(sweet, depth):
     """
     sweet (int) =
         0: redbear 
@@ -24,7 +24,12 @@ def main(sweet):
 		4: carambar
     """
 
-    theta = [0]*4
+    theta = [0]*5
+    # theta[0] : indicates if an object has been detected
+    # theta[1] : base rotation
+    # theta[2] : first arm rotation
+    # theta[3] : second arm rotation
+    # theta[4] : third arm rotation
     
     global arm_len    
     arm_len = [14.5, 18.5, 11]
@@ -33,11 +38,13 @@ def main(sweet):
     
 	####	Caption   ####
     #[left, right] = takepicture()
-    left = cv2.imread("Quentin/Application/data/leftDisto.png")
-    right = cv2.imread("Quentin/Application/data/rightDisto.png")
+    left = cv2.imread(os.path.sep.join([os.getcwd(),"Quentin/Application/data/leftDisto.png"]))
+    right = cv2.imread(os.path.sep.join([os.getcwd(),"Quentin/Application/data/rightDisto.png"]))
 
 	####	Detection and selection of the object   ####
     center = detection(left, right, sweet)
+
+    theta[0] = 0 if center == (-1,-1) else 1
 
     # Object position : depth = distance from robot (x-axis) and height (y-axis)
     # We state y = 11 as we want to reach the object from a vertical position
@@ -45,15 +52,15 @@ def main(sweet):
     triangulation(left, right, center)
     
     #### Left / right shift to center the robot in front of the objet ####
-    theta[0] = compute_shift(center)
+    theta[1] = compute_shift(center)
 
 	####	compute angles from positions   ####
-    theta[1:] = compute_angles()
+    theta[2:] = compute_angles()
 
     # Motor control only understand positive angles
     # besides, they  
-    theta[2] = np.pi - abs(theta[2])
-    theta[3] = np.pi - abs(theta[3])
+    theta[3] = np.pi - abs(theta[2])
+    theta[4] = np.pi - abs(theta[3])
 
     theta = np.degrees(theta)
 
@@ -78,13 +85,21 @@ def takepicture():
 	####	correction des distortions    ####
     cameraMatrix = np.loadtxt('Thomas/data/camMatrix.txt')
     distMatrix = np.loadtxt('Thomas/data/camDist.txt')
-	
+    
     left  = cv2.undistort(frames[0], cameraMatrix, distMatrix, None)
     right = cv2.undistort(frames[1], cameraMatrix, distMatrix, None)
-    
-    cv2.imwrite("Left.png", frames[0])
-    cv2.imwrite("Right.png", frames[1])
-    
+
+# =============================================================================
+#     left_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixL.txt')
+#     left_distMatrix = np.loadtxt('Quentin/Triangulation/camDistL.txt')
+# 
+#     right_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixR.txt')
+#     right_distMatrix = np.loadtxt('Quentin/Triangulation/camDistR.txt')
+#
+#    left  = cv2.undistort(frames[0], left_cameraMatrix, left_distMatrix, None)
+#    right = cv2.undistort(frames[1], right_cameraMatrix, right_distMatrix, None)
+# =============================================================================
+        
     ####	libérer stream	  ####
     webcam0.stop()
     webcam1.stop()
@@ -96,6 +111,64 @@ def takepicture():
 def triangulation(left, right, center):
     # return depth from the point
     pos[0] = 20
+
+    # Create StereoSGBM and prepare all parameters
+    window_size = 3
+    min_disp = 2
+    num_disp = 130-min_disp
+    stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
+        numDisparities = num_disp,
+        blockSize = window_size,
+        uniquenessRatio = 10,
+        speckleWindowSize = 100,
+        speckleRange = 32,
+        disp12MaxDiff = 5,
+        P1 = 8*3*window_size**2,
+        P2 = 32*3*window_size**2)
+    
+    # Used for the filtered image
+    stereoR=cv2.ximgproc.createRightMatcher(stereo) # Create another stereo for right this time
+    
+    # WLS FILTER Parameters
+    lmbda = 80000
+    sigma = 1.8
+     
+    wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=stereo)
+    wls_filter.setLambda(lmbda)
+    wls_filter.setSigmaColor(sigma)
+
+    # Convert from color(BGR) to gray
+    grayL= cv2.cvtColor(left,cv2.COLOR_BGR2GRAY)
+    grayR= cv2.cvtColor(right,cv2.COLOR_BGR2GRAY)
+
+    # Compute the 2 images for the Depth_image
+    disp= stereo.compute(grayL,grayR)#.astype(np.float32)/ 16
+    dispL= disp
+    dispR= stereoR.compute(grayR,grayL)
+    dispL= np.int16(dispL)
+    dispR= np.int16(dispR)
+
+    # Using the WLS filter
+    filteredImg = wls_filter.filter(dispL,grayL,None,dispR)
+    filteredImg = cv2.normalize(src=filteredImg, dst=filteredImg, beta=0, alpha=255, norm_type=cv2.NORM_MINMAX);
+    filteredImg = np.uint8(filteredImg)
+    #cv2.imshow('Disparity Map', filteredImg)
+    disp = ((disp.astype(np.float32)/ 16)-min_disp)/num_disp # Calculation allowing us to have 0 for the most distant object able to detect
+
+    left_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixL.txt')
+    right_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixR.txt')
+
+    # Camera focal
+    f = (left_cameraMatrix[0,0]+left_cameraMatrix[1,1])/2.0 + (right_cameraMatrix[0,0]+right_cameraMatrix[1,1])/2.0
+    # Distance between the 2 cameras (in millimeters)
+    t = 34 
+
+    depthMap = np.zeros(disp.shape)
+    mask = disp[:,:] != 0
+    depthMap[mask] = f*t / disp[mask]
+
+    return depthMap[center]    
+
 
 def compute_shift(center):
     shift = float(abs(240-center[0]))
@@ -253,6 +326,8 @@ def detection(left, right, sweet):
     right_idxs = cv2.dnn.NMSBoxes(right_boxes, right_confidences, confidence_threshold, 
                          nms_threshold)
 
+    if (len(right_idxs) == 0) or (len(left_idxs) == 0):
+        return (-1,-1)
 
     # If we consider they have found the same objects
     if len(left_idxs.flatten()) == len(right_idxs.flatten()):
@@ -269,7 +344,7 @@ def detection(left, right, sweet):
         for k in range(len(right_conf_index)): 
             if right_confidences[right_conf_index[k]] > left_confidences[left_conf_index[k]]:
                 max_ind = right_conf_index[k]
-                
+                    
                 # Si même position dans la liste triée selon la position des boites
                 # On suppose que ce sont les mêmes objets
                 if right_x_index.index(max_ind) == left_x_index.index(max_ind):
@@ -281,7 +356,6 @@ def detection(left, right, sweet):
                     return ((left_centers[max_ind][0]+right_centers[max_ind][0])//2, 
                             (left_centers[max_ind][1]+right_centers[max_ind][1])//2)        
             
-
 # =============================================================================
 #     # We consider the object with the higher detection confidence
 #     # is the same on the both pictures
