@@ -28,7 +28,7 @@ class Controler
 		RET moveBase(int angle);
 		
 		//permet de deplacer le bras
-		RET moveArm(int angle1,int angle2);
+		RET moveArm(int angle1,int angle2,int angle3);
 		
 		//permet de deplacer le "poignet"
 		RET moveHand(int angle);

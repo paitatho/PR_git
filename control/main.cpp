@@ -69,7 +69,7 @@ int main()
 				}
 				else
 				{
-					if(result[1]!=0 && ssc.moveBase(result[1]) == ERROR){
+					if(result[1]!=0 && ssc.moveBase(-result[1]) == ERROR){
 						cout<<"[C++][BASE ROTATE] ERREUR ROTATION DE LA BASE DE "<<  result[1]<<"° "<<endl;
 					}
 					else if(result[1]==0){
@@ -116,7 +116,7 @@ int main()
 				}
 				else
 				{
-					if(ssc.moveArm(result[2],result[3]) == ERROR){
+					if(ssc.moveArm(result[2],result[3],result[4]) == ERROR){
 						cout<<"[C++][ARM ROTATE] ERREUR ROTATION DU BRAS"<<endl;
 						cout<<"    bras 1 : " << result[2]<<"°"<<endl;
 						cout<<"    bras 2 : " << result[3]<<"°"<<endl;

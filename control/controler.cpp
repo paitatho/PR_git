@@ -47,7 +47,7 @@ void Controler::waitForDone(){
 
 RET Controler::moveBase(int angle){
 	
-	if(servos[PART::BASE].move(angleToSsc(angle, servos[PART::BASE].current)) !=NORM)
+	if(servos[PART::BASE].move(angleToSsc(angle, servos[PART::BASE].current),DEFAULT_TIME*2) !=NORM)
 		return ERROR;
 	else
 		waitForDone();
@@ -55,12 +55,24 @@ RET Controler::moveBase(int angle){
 	return NORM;
 }
 
-RET Controler::moveArm(int angle1,int angle2)
+RET Controler::moveArm(int angle1,int angle2,int angle3)
 {
+	
+	//##### BRAS 3	
+	int angleTmp = -(arm3Angle - angle3);
+	
+	if(servos[PART::ARM3].move(angleToSsc(angleTmp, servos[PART::ARM3].current)) != NORM)
+		return ERROR;
+	else{
+		cout<<"    bras 3 : " << angleTmp<<"°  "<<endl;
+		waitForDone();
+	}
+		
+	arm3Angle = angle3;
 	
 	//##### BRAS 2	
 	
-	int angleTmp = arm2Angle - angle2;
+	angleTmp = arm2Angle - angle2;
 	
 	//cout << "angleCourant : "<<servos[PART::ARM2].current;
 	//cout << "angleSsc : "<<angleToSsc(angleTmp, servos[PART::ARM2].current)<<endl;
