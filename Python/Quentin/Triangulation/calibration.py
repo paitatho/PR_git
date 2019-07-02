@@ -79,7 +79,7 @@ OmtxL, roiL= cv2.getOptimalNewCameraMatrix(mtxL,distL,(wL,hL),1,(wL,hL))
 np.savetxt("camDistR.txt", distR)
 np.savetxt("camMatrixR.txt", mtxR)
 np.savetxt("camDistL.txt", distL)
-np.savetxt("camMatrixR.txt", mtxL)
+np.savetxt("camMatrixL.txt", mtxL)
 
 print('Cameras Ready to use')
 

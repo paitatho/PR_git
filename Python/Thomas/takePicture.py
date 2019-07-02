@@ -10,8 +10,8 @@ import cv2
  
 # initialize the video streams and allow them to warmup
 print("[INFO] starting cameras...")
-webcam0 = VideoStream(src=0).start()
-webcam1 = VideoStream(src=1).start()
+webcam0 = VideoStream(src=1).start()
+webcam1 = VideoStream(src=2).start()
 time.sleep(1.0)
  
 # number of frames read

@@ -37,22 +37,30 @@ def main(sweet, depth):
     pos = np.array([0, arm_len[2]])
     
 	####	Caption   ####
-    #[left, right] = takepicture()
-    left = cv2.imread(os.path.sep.join([os.getcwd(),"Quentin/Application/data/leftDisto.png"]))
-    right = cv2.imread(os.path.sep.join([os.getcwd(),"Quentin/Application/data/rightDisto.png"]))
+    [left, right] = takepicture()
+# =============================================================================
+#     left = cv2.imread(os.path.sep.join([os.getcwd(),"Quentin/Application/data/leftDisto.png"]))
+#     right = cv2.imread(os.path.sep.join([os.getcwd(),"Quentin/Application/data/rightDisto.png"]))
+# =============================================================================
 
 	####	Detection and selection of the object   ####
-    center = detection(left, right, sweet)
-
-    theta[0] = 0 if center == (-1,-1) else 1
-
+    (x,y), do_shift  = detection(left, right, sweet)
+    center = (x,y)
+    
+    theta[0] = 0 if center == (-1,-1) else 1        
+    
     # Object position : depth = distance from robot (x-axis) and height (y-axis)
     # We state y = 11 as we want to reach the object from a vertical position
     # in order to remove Theta3 calculus from the reverse cinematic equation
+    
     triangulation(left, right, center)
+    pos[0] = depth
     
     #### Left / right shift to center the robot in front of the objet ####
-    theta[1] = compute_shift(center)
+    if do_shift:
+        theta[1] = compute_shift(center)
+    else:
+        theta[1] = 0
 
 	####	compute angles from positions   ####
     theta[2:] = compute_angles()
@@ -62,16 +70,20 @@ def main(sweet, depth):
     theta[3] = np.pi - abs(theta[2])
     theta[4] = np.pi - abs(theta[3])
 
-    theta = np.degrees(theta)
+    theta[2:] = np.degrees(theta[2:])
 
-    print("[INFO] Theta final values : ", theta)
+    print("[PYTHON] Theta final values : ", list(map(int, theta)))
 
-    return theta
+    return list(map(int, theta))
 
 def takepicture():
-    print("[INFO] starting cameras...")
-    webcam0 = VideoStream(src=1).start()
-    webcam1 = VideoStream(src=2).start()
+    print("[PYTHON] starting cameras...")
+    # left_cam
+    webcam0 = VideoStream(src=0).start()
+    # right_cam
+    webcam1 = VideoStream(src=1).start()
+
+    print("[PYTHON] cameras started...")
     time.sleep(0.5)
 
 	#### 	Capture des images   ####
@@ -83,35 +95,38 @@ def takepicture():
         frames.append(frame)
 	
 	####	correction des distortions    ####
-    cameraMatrix = np.loadtxt('Thomas/data/camMatrix.txt')
-    distMatrix = np.loadtxt('Thomas/data/camDist.txt')
-    
-    left  = cv2.undistort(frames[0], cameraMatrix, distMatrix, None)
-    right = cv2.undistort(frames[1], cameraMatrix, distMatrix, None)
+# =============================================================================
+#     cameraMatrix = np.loadtxt('Thomas/data/camMatrix.txt')
+#     distMatrix = np.loadtxt('Thomas/data/camDist.txt')
+#     left  = cv2.undistort(frames[0], cameraMatrix, distMatrix, None)
+#     right = cv2.undistort(frames[1], cameraMatrix, distMatrix, None)
+# =============================================================================
 
-# =============================================================================
-#     left_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixL.txt')
-#     left_distMatrix = np.loadtxt('Quentin/Triangulation/camDistL.txt')
-# 
-#     right_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixR.txt')
-#     right_distMatrix = np.loadtxt('Quentin/Triangulation/camDistR.txt')
-#
-#    left  = cv2.undistort(frames[0], left_cameraMatrix, left_distMatrix, None)
-#    right = cv2.undistort(frames[1], right_cameraMatrix, right_distMatrix, None)
-# =============================================================================
-        
+    left_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixL.txt')
+    left_distMatrix = np.loadtxt('Quentin/Triangulation/camDistL.txt')
+
+    right_cameraMatrix = np.loadtxt('Quentin/Triangulation/camMatrixR.txt')
+    right_distMatrix = np.loadtxt('Quentin/Triangulation/camDistR.txt')
+
+    left  = cv2.undistort(frames[0], left_cameraMatrix, left_distMatrix, None)
+    right = cv2.undistort(frames[1], right_cameraMatrix, right_distMatrix, None)
+
+    cv2.imwrite('Quentin/Triangulation/data/left_new_undisto.png', left)
+    cv2.imwrite('Quentin/Triangulation/data/right_new_undisto.png', right)
+    
     ####	libérer stream	  ####
     webcam0.stop()
     webcam1.stop()
-    print("[INFO] ending cameras...")
+    print("[PYTHON] ending cameras...")
 
     return [left, right]
 
 
 def triangulation(left, right, center):
     # return depth from the point
-    pos[0] = 20
+    pos[0] = 22
 
+    return 
     # Create StereoSGBM and prepare all parameters
     window_size = 3
     min_disp = 2
@@ -167,19 +182,30 @@ def triangulation(left, right, center):
     mask = disp[:,:] != 0
     depthMap[mask] = f*t / disp[mask]
 
+    cv2.imwrite('Quentin/Triangulation/data/disp_test.png', filteredImg)
+    cv2.imwrite('Quentin/Triangulation/data/depthMap_test.png', depthMap)
+
     return depthMap[center]    
 
 
 def compute_shift(center):
-    shift = float(abs(240-center[0]))
-    sign = 1 if center[0] > 240 else -1
-    # sinus(a) = opposé / hypotenus
+    # trouver une mesure de la distance de l'objet au centre en mm
+    # à partir de la profondeur
+
+    shift = float(abs(320-center[0]))
+    sign = 1 if center[0] > 320 else -1
     
-    return sign*(np.arcsin(shift/pos[0]))
+    # heuristique forte : dans notre "gamme de distance"
+    # on suppose qu'un décalage de 8 pixel équivaut à un décale de 1%
 
-
+    return sign*shift/8.
+    
+    
+    # sinus(a) = opposé / hypotenus
+    #return sign*(np.arcsin(shift/pos[0]))
+    
 def detection(left, right, sweet):
-    print("[INFO] starting detection...")
+    print("[PYTHON] starting detection...")
     folderpath = "Quentin/Application/yolo-sweets"	
     labelsPath = os.path.sep.join([folderpath, "sweets.names"])
     LABELS = open(labelsPath).read().strip().split("\n")
@@ -191,14 +217,14 @@ def detection(left, right, sweet):
     weightsPath = os.path.sep.join([folderpath, "sweets-tiny_v4_9400.weights"])
 	 
 	# load our YOLO object detector trained on sweets dataset (5 classes)
-    print("[INFO] loading YOLO from disk...")
+    print("[PYTHON] loading YOLO from disk...")
     net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
 
 	# grab spatial dimensions of our input images
 	# image = cv2.imread("imagepath")
     (Hl, Wl) = left.shape[:2]
     (Hr, Wr) = right.shape[:2]
-	#print('[INFO] Image Shape : ({},{})'.format(H,W)) 
+	#print('[PYTHON] Image Shape : ({},{})'.format(H,W)) 
 
 	# determine only the *output* layer names that we need from YOLO
     ln = net.getLayerNames()
@@ -227,7 +253,7 @@ def detection(left, right, sweet):
     end = time.time()
 	 
 	# show timing information on YOLO
-    print("[INFO] YOLO took {:.6f} seconds for left image".format(end - start))
+    print("[PYTHON] YOLO took {:.6f} seconds for left image".format(end - start))
 
 	# right image
     net.setInput(blob_right)
@@ -236,7 +262,7 @@ def detection(left, right, sweet):
     end = time.time()
 
 	# show timing information on YOLO
-    print("[INFO] YOLO took {:.6f} seconds for right image".format(end - start))
+    print("[PYTHON] YOLO took {:.6f} seconds for right image".format(end - start))
 
 	# initialize our lists of detected bounding boxes, confidences,
 	# class IDs, and centers respectively
@@ -343,18 +369,36 @@ def detection(left, right, sweet):
         # On veut en prioriter travailler sur l'index dont la confidence est la plus haute
         for k in range(len(right_conf_index)): 
             if right_confidences[right_conf_index[k]] > left_confidences[left_conf_index[k]]:
-                max_ind = right_conf_index[k]
-                    
+                max_ind = right_conf_index[k]                    
+                xil = left_boxes[max_ind][0]
+                xir = left_boxes[max_ind][0] + right_boxes[max_ind][2]
+                xjl = right_boxes[max_ind][0]
+                xjr = right_boxes[max_ind][0] + right_boxes[max_ind][2]
                 # Si même position dans la liste triée selon la position des boites
                 # On suppose que ce sont les mêmes objets
-                if right_x_index.index(max_ind) == left_x_index.index(max_ind):
+                if right_x_index.index(max_ind) == left_x_index.index(max_ind):                    
+                    if ((xil+xjl)//2 < 320) and ((xir+xjr)//2 > 320):
+                        do_shift = False
+                    else:
+                        do_shift = True 
+                        
                     return ((left_centers[max_ind][0]+right_centers[max_ind][0])//2, 
-                            (left_centers[max_ind][1]+right_centers[max_ind][1])//2)        
+                            (left_centers[max_ind][1]+right_centers[max_ind][1])//2),do_shift
             else:
                 max_ind = left_conf_index[k]
+                xil = left_boxes[max_ind][0]
+                xir = left_boxes[max_ind][0] + right_boxes[max_ind][2]
+                xjl = right_boxes[max_ind][0]
+                xjr = right_boxes[max_ind][0] + right_boxes[max_ind][2]
+
                 if right_x_index.index(max_ind) == left_x_index.index(max_ind):
+                    if ((xil+xjl)//2 < 320) and ((xir+xjr)//2 > 320):
+                        do_shift = False
+                    else:
+                        do_shift = True 
+
                     return ((left_centers[max_ind][0]+right_centers[max_ind][0])//2, 
-                            (left_centers[max_ind][1]+right_centers[max_ind][1])//2)        
+                            (left_centers[max_ind][1]+right_centers[max_ind][1])//2),do_shift
             
 # =============================================================================
 #     # We consider the object with the higher detection confidence
@@ -495,8 +539,8 @@ def compute_angles():
         
         return theta
     else:
-        print("[INFO] back to initial position")
+        print("[PYTHON] back to initial position")
         return [0,0,0] # à définir
     
 
-main(2)
+main(2, 22)
