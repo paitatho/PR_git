@@ -132,6 +132,7 @@ def takepicture():
 #     right = cv2.undistort(frames[1], cameraMatrix, distMatrix, None)
 # =============================================================================
 
+
     left_cameraMatrix = np.loadtxt(path+'Quentin/Triangulation/camMatrixL.txt')
     left_distMatrix = np.loadtxt(path+'Quentin/Triangulation/camDistL.txt')
 
@@ -140,6 +141,26 @@ def takepicture():
 
     left  = cv2.undistort(frames[0], left_cameraMatrix, left_distMatrix, None)
     right = cv2.undistort(frames[1], right_cameraMatrix, right_distMatrix, None)
+
+
+# =============================================================================
+#   Left_Stereo_Map_0 = np.loadtxt(path+'Quentin/Triangulation/Left_Stereo_Map_0.txt')
+#    Left_Stereo_Map_0 = Left_Stereo_Map_0.reshape((480, 640, 2))
+#    Left_Stereo_Map_0 = Left_Stereo_Map_0.astype(np.int16)
+#    Left_Stereo_Map_1 = np.loadtxt(path+'Quentin/Triangulation/Left_Stereo_Map_1.txt')
+#    Left_Stereo_Map_1 = Left_Stereo_Map_1.astype(np.int16)
+#
+#    Right_Stereo_Map_0 = np.loadtxt(path+'Quentin/Triangulation/Right_Stereo_Map_0.txt')
+#    Right_Stereo_Map_0 = Right_Stereo_Map_0.reshape((480, 640, 2))
+#    Right_Stereo_Map_0 = Left_Stereo_Map_0.astype(np.int16)
+#    Right_Stereo_Map_1 = np.loadtxt(path+'Quentin/Triangulation/Right_Stereo_Map_1.txt')
+#    Right_Stereo_Map_1 = Left_Stereo_Map_1.astype(np.int16)
+#
+#    # Rectify the images on rotation and alignement
+#    left = cv2.remap(frame[0],Left_Stereo_Map_0,Left_Stereo_Map_1, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)  
+#    # Rectify the image using the calibration parameters founds during the initialisation
+#    right = cv2.remap(frame[1],Right_Stereo_Map_0,Right_Stereo_Map_1, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
+# =============================================================================
 
     cv2.imwrite(path+'Quentin/Triangulation/data/left_new_undisto.png', left)
     cv2.imwrite(path+'Quentin/Triangulation/data/right_new_undisto.png', right)
@@ -154,6 +175,7 @@ def takepicture():
 
 def triangulation(left, right, center):
     # return depth from the point
+    print("[PYTHON] starting triangulation...")
 
     # Create StereoSGBM and prepare all parameters
     window_size = 3
@@ -213,7 +235,14 @@ def triangulation(left, right, center):
     #cv2.imwrite(path+'Quentin/Triangulation/data/disp_test.png', filteredImg)
     #cv2.imwrite(path+'Quentin/Triangulation/data/depthMap_test.png', depthMap)
 
-    print("[PYTHON] hypothetical depthMap[center]",  depthMap[center]) 
+    median = []
+    for i in [-1,0,1]:
+        for j in [-1,0,1]:
+            median.append(depthMap[center[0]+i,center[1]+j])
+    pos[0] = np.median(median) + 4.5
+
+    print("[PYTHON] median of depthMap[center]",  median) 
+    print("[PYTHON] hypothetical depthMap[center]",  pos[0]) 
 
     return 
 
@@ -424,7 +453,7 @@ def detection(left, right, sweet):
         cv2.imshow("Webcam1", right)
         cv2.waitKey(25)
 
-    #time.sleep(2)
+    time.sleep(2)
 
 
     if (len(right_idxs) == 0) or (len(left_idxs) == 0):

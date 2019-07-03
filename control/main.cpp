@@ -103,7 +103,7 @@ int main()
 			float depth;
 			cout<<"veuillez entrez la distance à l'objet !"<<endl;
 			cin>>depth;
-			depth -=1;
+			depth -=depth/10;
 			vector<float> t; t.push_back((int)candy);t.push_back(depth);
 			setArgs(&pArgs,&pValue,t);
 			pValue = PyObject_CallObject(pFunc, pArgs);

@@ -109,7 +109,7 @@ RET Controler::moveArm(float angle1,float angle2,float angle3)
 
 RET Controler::catchObject(){
 	
-	if(servos[PART::HAND].move(1900) != NORM)
+	if(servos[PART::HAND].move(2100) != NORM)
 		return ERROR;
 	else{
 		cout<<"    attrapage de l'objet" <<endl;
