@@ -39,8 +39,10 @@ def main(sweet, depth):
     global pos
     pos = np.array([0, arm_len[2]])
 
-    ####    object have been found on previous iteration   ####
-    ####    and the robot is centered considering the object   ####
+    # object have been found on previous iteration #
+    # and the robot is centered considering the object #
+    # as depth is given by the user, we compute the reverse cinematic
+    # as soon as user gives the depth of the object (no need for another detection)
     if depth != -1:
         pos[0] = depth
         theta[0] = 1
@@ -55,7 +57,7 @@ def main(sweet, depth):
 
         return theta
     
-    ####    Caption   ####
+    ####    Caption   #### -> We don't need leftDist and rightDist
     [left, right,leftDist,rightDist] = takepicture()
     for (frame, name) in zip([left, right], ("Webcam0", "Webcam1")):
         # draw the timestamp on the frame and display it
@@ -63,14 +65,6 @@ def main(sweet, depth):
         cv2.imshow(name, frame)
         cv2.waitKey(25)
         
-
-    
-    #key = cv2.waitKey(1)
-# =============================================================================
-#     left = cv2.imread(os.path.sep.join([os.getcwd(),"Quentin/Application/data/leftDisto.png"]))
-#     right = cv2.imread(os.path.sep.join([os.getcwd(),"Quentin/Application/data/rightDisto.png"]))
-# =============================================================================
-
     ####    Detection and selection of the object   ####
     (x,y), do_shift  = detection(left, right, sweet)
     center = (x,y)
@@ -81,6 +75,7 @@ def main(sweet, depth):
     # We state y = 11 as we want to reach the object from a vertical position
     # in order to remove Theta3 calculus from the reverse cinematic equation
     
+    # inverser les commentaires si triangulation fonctionnelle
     #triangulation(left, right, center)
     pos[0] = depth
     
@@ -97,7 +92,6 @@ def main(sweet, depth):
     # besides, they  
     theta[3] = np.pi - abs(theta[3])
     theta[4] = np.pi - abs(theta[4])
-
     theta[2:] = np.degrees(theta[2:])
 
     print("[PYTHON] Theta final values : ", list(map(int, theta)))
@@ -125,14 +119,16 @@ def takepicture():
         frames.append(frame)
     
     ####    correction des distortions    ####
+
 # =============================================================================
+#     first attempt to reduce distorsion
 #     cameraMatrix = np.loadtxt('Thomas/data/camMatrix.txt')
 #     distMatrix = np.loadtxt('Thomas/data/camDist.txt')
 #     left  = cv2.undistort(frames[0], cameraMatrix, distMatrix, None)
 #     right = cv2.undistort(frames[1], cameraMatrix, distMatrix, None)
 # =============================================================================
 
-
+#     second attempt to reduce distorsion
     left_cameraMatrix = np.loadtxt(path+'Quentin/Triangulation/camMatrixL.txt')
     left_distMatrix = np.loadtxt(path+'Quentin/Triangulation/camDistL.txt')
 
@@ -144,7 +140,9 @@ def takepicture():
 
 
 # =============================================================================
-#   Left_Stereo_Map_0 = np.loadtxt(path+'Quentin/Triangulation/Left_Stereo_Map_0.txt')
+#    third attempt to reduce distorsion, may be more powerfull but needs some improvements
+
+#    Left_Stereo_Map_0 = np.loadtxt(path+'Quentin/Triangulation/Left_Stereo_Map_0.txt')
 #    Left_Stereo_Map_0 = Left_Stereo_Map_0.reshape((480, 640, 2))
 #    Left_Stereo_Map_0 = Left_Stereo_Map_0.astype(np.int16)
 #    Left_Stereo_Map_1 = np.loadtxt(path+'Quentin/Triangulation/Left_Stereo_Map_1.txt')
@@ -162,8 +160,8 @@ def takepicture():
 #    right = cv2.remap(frame[1],Right_Stereo_Map_0,Right_Stereo_Map_1, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
 # =============================================================================
 
-    cv2.imwrite(path+'Quentin/Triangulation/data/left_new_undisto.png', left)
-    cv2.imwrite(path+'Quentin/Triangulation/data/right_new_undisto.png', right)
+    #cv2.imwrite(path+'Quentin/Triangulation/data/left_new_undisto.png', left)
+    #cv2.imwrite(path+'Quentin/Triangulation/data/right_new_undisto.png', right)
     
     ####    libérer stream    ####
     webcam0.stop()
@@ -255,11 +253,11 @@ def compute_shift(center):
     sign = 1 if center[0] > 320 else -1
     
     # heuristique forte : dans notre "gamme de distance"
-    # on suppose qu'un décalage de 8 pixel équivaut à un décale de 1%
+    # on suppose qu'un décalage de 7 pixel équivaut à un décale de 1%
 
     return sign*shift/7.0
-    
-    
+        
+    # Si on avait la profondeur
     # sinus(a) = opposé / hypotenus
     #return sign*(np.arcsin(shift/pos[0]))
     
@@ -295,6 +293,8 @@ def detection(left, right, sweet):
     # construct a blob from the input image and then perform a forward
     # pass of the YOLO object detector, giving us our bounding boxes and
     # associated probabilities
+
+    # On peut essayer en resizant l'image
 
     #left = cv2.resize(left, (640, 480))
     blob_left = cv2.dnn.blobFromImage(left, 1 / 255.0, (416, 416),
@@ -459,7 +459,7 @@ def detection(left, right, sweet):
     if (len(right_idxs) == 0) or (len(left_idxs) == 0):
         return (-1,-1), False
 
-    # On fait l'hypothèse qu'une boxe encadrant un bonbon fait donc au moins 20 pixels de largeurs 
+    # On fait l'hypothèse qu'une boxe encadrant un bonbon fait donc au moins 2*delta pixels de largeurs 
     delta = 15
     
     # If we consider they have found the same objects
@@ -556,70 +556,48 @@ def detection(left, right, sweet):
         return ((left_centers[l_idx][0]+right_centers[r_idx][0])//2, 
                 (left_centers[l_idx][1]+right_centers[r_idx][1])//2), do_shift
 
-
-    # we consider they have found the same objects
-    if len(left_idxs.flatten()) == len(right_idxs.flatten()):
-        # vertical distance from two boxes
-        dist = np.zeros((len(left_idxs.flatten()), len(right_idxs.flatten())))
-        for (n,i) in enumerate(left_idxs.flatten()):
-            xi, yi = left_boxes[i][0], left_boxes[i][1]
-            wi, hi = left_boxes[i][2], left_boxes[i][3]
-            for (m,j) in enumerate(right_idxs.flatten()):
-                xj, yj = right_boxes[j][0], right_boxes[j][1]
-                wj, hj = right_boxes[j][2], right_boxes[j][3]
-                
-                dist[n][m] = np.sqrt(np.power(xj - xi, 2) + np.power(yj - yi, 2))
-
-        # retrieving indices of the minimum distance value
-        min_dist = np.where(dist == np.amin(dist))
-        min_dist = list(zip(min_dist[0], min_dist[1]))
-
-        # we just take the first one    
-        for (n,m) in min_dist:
-            
-            # Middle from ( [xA, yA] , [xB,yB] )
-            return ((left_centers[left_idxs.flatten()[n]][0]+right_centers[right_idxs.flatten()[m]][0])//2, 
-                    (left_centers[left_idxs.flatten()[n]][1]+right_centers[right_idxs.flatten()[m]][1])//2)
-    else:
-        # compute Intersection over Union between the predicted boxes
-        # to try to match a left and right object
-        iou = np.zeros((len(left_idxs.flatten()), len(right_idxs.flatten())))
-        for (n,i) in enumerate(left_idxs.flatten()):
-            xi, yi = left_boxes[i][0], left_boxes[i][1]
-            wi, hi = left_boxes[i][2], left_boxes[i][3]
-            for (m,j) in enumerate(right_idxs.flatten()):
-                xj, yj = right_boxes[j][0], right_boxes[j][1]
-                wj, hj = right_boxes[j][2], right_boxes[j][3]
-    
-                # define intersection coordonates of the two boxes             
-                xA = max(xi,xj) 
-                yA = max(yi,yj)
-                xB = min(xi+wi, xj+wj)
-                yB = min(yi+hi, yj+hj)
-                
-                # compute t1he area of intersection rectangle
-                interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-             
-                # compute the area of both boxes left and right
-                boxAArea = (wi + 1) * (hi + 1)
-                boxBArea = (wj + 1) * (hj + 1)
-             
-                # compute the intersection over union by taking the intersection
-                # area and dividing it by the sum of prediction + ground-truth
-                # areas - the interesection area
-                iou[n][m] = interArea / float(boxAArea + boxBArea - interArea)
-             
-                
-        # retrieving indices of the maximum IoU value
-        res = np.where(iou == np.amax(iou))
-        res = list(zip(res[0], res[1]))
-    
-        # we just take the first one    
-        for (n,m) in res:
-            print(n,m)
-            # Middle from ( [xA, yA] , [xB,yB] )
-            return ((left_centers[left_idxs[n]][0]+right_centers[right_idxs[m]][0])//2, 
-                    (left_centers[left_idxs[n]][1]+right_centers[right_idxs[m]][1])//2)
+# =============================================================================
+#    # another attempt of matching the boxes
+#    # compute Intersection over Union between the predicted boxes
+#    # to try to match a left and right object
+#    iou = np.zeros((len(left_idxs.flatten()), len(right_idxs.flatten())))
+#    for (n,i) in enumerate(left_idxs.flatten()):
+#        xi, yi = left_boxes[i][0], left_boxes[i][1]
+#        wi, hi = left_boxes[i][2], left_boxes[i][3]
+#        for (m,j) in enumerate(right_idxs.flatten()):
+#            xj, yj = right_boxes[j][0], right_boxes[j][1]
+#            wj, hj = right_boxes[j][2], right_boxes[j][3]
+#
+#            # define intersection coordonates of the two boxes             
+#            xA = max(xi,xj) 
+#            yA = max(yi,yj)
+#            xB = min(xi+wi, xj+wj)
+#            yB = min(yi+hi, yj+hj)
+#            
+#            # compute t1he area of intersection rectangle
+#            interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+#         
+#            # compute the area of both boxes left and right
+#            boxAArea = (wi + 1) * (hi + 1)
+#            boxBArea = (wj + 1) * (hj + 1)
+#         
+#            # compute the intersection over union by taking the intersection
+#            # area and dividing it by the sum of prediction + ground-truth
+#            # areas - the interesection area
+#            iou[n][m] = interArea / float(boxAArea + boxBArea - interArea)
+#             
+#                
+#        # retrieving indices of the maximum IoU value
+#        res = np.where(iou == np.amax(iou))
+#        res = list(zip(res[0], res[1]))
+#    
+#        # we just take the first one    
+#        for (n,m) in res:
+#            print(n,m)
+#            # Middle from ( [xA, yA] , [xB,yB] )
+#            return ((left_centers[left_idxs[n]][0]+right_centers[right_idxs[m]][0])//2, 
+#                    (left_centers[left_idxs[n]][1]+right_centers[right_idxs[m]][1])//2)
+# =============================================================================
         
         
 
