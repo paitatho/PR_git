@@ -49,6 +49,12 @@ void Servo::initPos(){
 	current = defaut;
 }
 
+void Servo::initPos(unsigned int time){
+	Command cmd(pin,defaut,time);
+	sscUart.send(cmd.getStr());
+	current = defaut;
+}
+
 int Servo::getPulseWidth(){
 	string cmd("QP "+ to_string(pin)+ "\r");
 	sscUart.send(cmd);

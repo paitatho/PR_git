@@ -14,9 +14,9 @@ class Controler
 {
 	private:
 		std::vector<Servo> servos;
-		unsigned int arm1Angle;
-		unsigned int arm2Angle;
-		unsigned int arm3Angle;
+		float arm1Angle;
+		float arm2Angle;
+		float arm3Angle;
 	public:
 	
 		Controler();
@@ -25,13 +25,13 @@ class Controler
 		void test();
 	
 		//permet de tourner la base du bras
-		RET moveBase(int angle);
+		RET moveBase(float angle);
 		
 		//permet de deplacer le bras
-		RET moveArm(int angle1,int angle2,int angle3);
+		RET moveArm(float angle1,float angle2,float angle3);
 		
-		//permet de deplacer le "poignet"
-		RET moveHand(int angle);
+		//permet d'attraper l'objet
+		RET catchObject();
 		
 
 		//stop le moteur désiré 
@@ -40,7 +40,10 @@ class Controler
 		//attend que l'action en cours soit finie
 		void waitForDone();
 		
-		void init(unsigned int speed = DEFAULT_TIME);
+		void init();
+		
+		void init(unsigned int time);
+
 		
 		//fonction de test
 		void coucou();

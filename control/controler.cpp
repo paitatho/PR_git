@@ -10,7 +10,7 @@
  */ 
 
 #define angleToSsc(angle, current) \
-		( current + (angle * 2000 /180) )
+		((int)( current + (angle * 2000 /180)) )
 
 //"/dev/ttyAMA0",9600
 using namespace std;
@@ -19,14 +19,14 @@ using namespace std;
 Controler::Controler()
 {
 	servos.push_back(Servo(0,837));  	//main
-	servos.push_back(Servo(3,1331));	//poignet
+	servos.push_back(Servo(3,2222));	//poignet
 	servos.push_back(Servo(6,867));		//bras3
 	servos.push_back(Servo(8,2093));	//bras2	
 	servos.push_back(Servo(12,2023));	//bras1
 	servos.push_back(Servo(15));		//base
 	
 	arm1Angle = 135;   // angle entre bras 1 et le sol
-	arm2Angle = 60;    // angle entre bras 1 et bras 2
+	arm2Angle = 62;    // angle entre bras 1 et bras 2
 	arm3Angle = 90;    // angle entre bras 2 et bras 3
 
 	//initialise les servos moteurs 
@@ -45,9 +45,9 @@ void Controler::waitForDone(){
 
 
 
-RET Controler::moveBase(int angle){
+RET Controler::moveBase(float angle){
 	
-	if(servos[PART::BASE].move(angleToSsc(angle, servos[PART::BASE].current),DEFAULT_TIME*2) !=NORM)
+	if(servos[PART::BASE].move(angleToSsc(angle, servos[PART::BASE].current),DEFAULT_TIME/3) !=NORM)
 		return ERROR;
 	else
 		waitForDone();
@@ -55,11 +55,11 @@ RET Controler::moveBase(int angle){
 	return NORM;
 }
 
-RET Controler::moveArm(int angle1,int angle2,int angle3)
+RET Controler::moveArm(float angle1,float angle2,float angle3)
 {
 	
 	//##### BRAS 3	
-	int angleTmp = -(arm3Angle - angle3);
+	float angleTmp = -(arm3Angle - angle3);
 	
 	if(servos[PART::ARM3].move(angleToSsc(angleTmp, servos[PART::ARM3].current)) != NORM)
 		return ERROR;
@@ -93,7 +93,7 @@ RET Controler::moveArm(int angle1,int angle2,int angle3)
 	//cout<< "	angleCourant : "<<servos[PART::ARM1].current;
 	//cout<< "	angleSsc : "<<angleToSsc(angleTmp, servos[PART::ARM1].current)<<endl;
 	
-	if(servos[PART::ARM1].move(angleToSsc(angleTmp, servos[PART::ARM1].current)) !=NORM)
+	if(servos[PART::ARM1].move(angleToSsc(angleTmp, servos[PART::ARM1].current),DEFAULT_TIME*1.5) !=NORM)
 		return ERROR;
 	else{
 		cout<<"    bras 1 : " << angleTmp<<"°  "<<endl;
@@ -107,25 +107,49 @@ RET Controler::moveArm(int angle1,int angle2,int angle3)
 	return NORM;
 }
 
-RET Controler::moveHand(int angle){
+RET Controler::catchObject(){
 	
-	int angleTmp = arm3Angle - angle;
-	
-	if(servos[PART::ARM3].move(angleToSsc(angleTmp, servos[PART::ARM3].current)) != NORM)
+	if(servos[PART::HAND].move(1900) != NORM)
 		return ERROR;
-		
-	arm3Angle = angle;
-	
+	else{
+		cout<<"    attrapage de l'objet" <<endl;
+		waitForDone();
+	}
 	return NORM;
 }
 
-void Controler::init(unsigned int speed){
+void Controler::init(){
 		
-	for (int i=0;i<servos.size();++i)
+	for (int i=servos.size();i>=0;--i)
 	{
 		servos[i].initPos();
 		waitForDone();
 	}
+}
+
+void Controler::init(unsigned int time){
+		
+	servos[PART::ARM1].initPos(time);
+	waitForDone();
+	
+	servos[PART::ARM2].initPos(time);
+	waitForDone();
+	
+	servos[PART::BASE].initPos(time);
+	waitForDone();
+	
+	servos[PART::ARM3].initPos(time);
+	waitForDone();
+	
+	servos[PART::ROT_HAND].initPos(time);
+	waitForDone();
+	
+	servos[PART::HAND].initPos(time);
+	waitForDone();
+	
+	arm1Angle = 135;   // angle entre bras 1 et le sol
+	arm2Angle = 62;    // angle entre bras 1 et bras 2
+	arm3Angle = 90;    // angle entre bras 2 et bras 3
 }
 
 

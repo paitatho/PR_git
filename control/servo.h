@@ -67,6 +67,8 @@ class Servo
 		//Met le moteur à sa position par défaut
 		void initPos();
 		
+		void initPos(unsigned int time);
+		
 		//
 		int getPulseWidth();
 		

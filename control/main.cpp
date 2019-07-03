@@ -6,8 +6,8 @@ using namespace std;
 int initPython(PyObject **pName,PyObject **pModule,PyObject **pFunc,PyObject **pArgs,PyObject **pValue,vector<int> val);
 vector<int> listTupleToVector_Int(PyObject* incoming);
 CHOICE choiceCandy();
-int setArgs(PyObject **pArgs,PyObject **pValue,vector<int> val) ;
-
+int setArgs(PyObject **pArgs,PyObject **pValue,vector<float> val) ;
+vector<float> listTupleToVector_Float(PyObject* incoming);
 
 /*
  * valeur retourner par le python = tableau de 5 cases
@@ -25,6 +25,7 @@ int main()
 	
 	CHOICE candy(CHOICE::UNKNOW);
 	bool rotBas(false);
+	bool moveArm(false);
 	bool catchCandy(false);
 	//angle de rotation si on trouve pas de bonbon
 	int angleBase = 30; 
@@ -50,26 +51,26 @@ int main()
 		}
 		else if (!rotBas)
 		{
-			vector<int> t; t.push_back(candy);t.push_back(-1);
+			vector<float> t; t.push_back(candy);t.push_back(-1.0);
 			setArgs(&pArgs,&pValue,t);
 			pValue = PyObject_CallObject(pFunc, pArgs);
 		
 			if (pValue != NULL) {
-				vector<int> result = listTupleToVector_Int(pValue);
+				vector<float> result = listTupleToVector_Float(pValue);
 				//premier entier indique s'il y a bien eu une détection
-				if(result[0] == 0)
+				if(result[0] == 0.0)
 				{
 					//si pas de détection on balaye l'environnement
 					if(ssc.moveBase(angleBase) == ERROR)
 						angleBase = -angleBase;
 					else{
-						cout<<"[C++][BASE ROTATE] rotation de la base de "<<  angleBase<<"° à la recherche du bonbon"<<endl;
+						cout<<"[C++][BASE ROTATE] rotation de la base de "<<  angleBase <<"° à la recherche du bonbon"<<endl;
 						ssc.waitForDone();
 					}
 				}
 				else
 				{
-					if(result[1]!=0 && ssc.moveBase(-result[1]) == ERROR){
+					if(result[1]!=0.0 && ssc.moveBase(result[1]) == ERROR){
 						cout<<"[C++][BASE ROTATE] ERREUR ROTATION DE LA BASE DE "<<  result[1]<<"° "<<endl;
 					}
 					else if(result[1]==0){
@@ -97,18 +98,18 @@ int main()
 			
 			
 		}
-		else if(!catchCandy)
+		else if(!moveArm)
 		{
-			int depth;
+			float depth;
 			cout<<"veuillez entrez la distance à l'objet !"<<endl;
 			cin>>depth;
-			vector<int> t; t.push_back((int)candy);t.push_back(depth);
+			depth -=1;
+			vector<float> t; t.push_back((int)candy);t.push_back(depth);
 			setArgs(&pArgs,&pValue,t);
 			pValue = PyObject_CallObject(pFunc, pArgs);
 		
 			if (pValue != NULL) {
-				vector<int> result = listTupleToVector_Int(pValue);
-				//result.push_back(1);result.push_back(1);result.push_back(110);result.push_back(75);
+				vector<float> result = listTupleToVector_Float(pValue);
 				
 				if(result[0] == 0)
 				{
@@ -116,7 +117,7 @@ int main()
 				}
 				else
 				{
-					if(ssc.moveArm(result[2],result[3],result[4]) == ERROR){
+					if(ssc.moveArm(result[2]+5,result[3],result[4]) == ERROR){
 						cout<<"[C++][ARM ROTATE] ERREUR ROTATION DU BRAS"<<endl;
 						cout<<"    bras 1 : " << result[2]<<"°"<<endl;
 						cout<<"    bras 2 : " << result[3]<<"°"<<endl;
@@ -141,6 +142,11 @@ int main()
 				return 1;
 			}
 			
+			moveArm=true;
+		}
+		else if(!catchCandy)
+		{
+			ssc.catchObject();
 			catchCandy=true;
 		}
 		else
@@ -148,8 +154,11 @@ int main()
 			candy= CHOICE::UNKNOW;
 			rotBas=false;
 			catchCandy=false;
+			moveArm=false;
+			//retour à la position d'origine
+			ssc.init(1000);
+			
 		}
-
 	}
 	
 	Py_XDECREF(pFunc);
@@ -167,13 +176,6 @@ int initPython(PyObject **pName,PyObject  **pModule,PyObject  **pFunc,PyObject  
 	
     int i;
     Py_Initialize();
-	PyRun_SimpleString("import sys");
-	PyRun_SimpleString("import sys");
-	PyRun_SimpleString("import sys");
-	PyRun_SimpleString("import sys");
-	PyRun_SimpleString("import sys");
-	PyRun_SimpleString("import sys");
-	PyRun_SimpleString("import sys");
 	PyRun_SimpleString("import sys");
 	PyRun_SimpleString("sys.path.append(\"/home/pi/Desktop/rasp/PR_git/Python/\")");
 	
@@ -220,7 +222,7 @@ int initPython(PyObject **pName,PyObject  **pModule,PyObject  **pFunc,PyObject  
     return 0;
 }
 
-int setArgs(PyObject **pArgs,PyObject **pValue,vector<int> val) 
+int setArgs(PyObject **pArgs,PyObject **pValue,vector<float> val) 
 {
 	if(*pArgs != NULL)
 		Py_DECREF(*pArgs);
@@ -229,7 +231,7 @@ int setArgs(PyObject **pArgs,PyObject **pValue,vector<int> val)
     
 	//conversion argument en type python
 	for(int i=0;i<val.size();i++){
-		*pValue = PyLong_FromLong(val[i]);
+		*pValue = PyFloat_FromDouble(val[i]);
 		if(!*pValue){
 			Py_DECREF(*pArgs);
 			fprintf(stderr, "Cannot convert argument\n");
@@ -243,6 +245,27 @@ int setArgs(PyObject **pArgs,PyObject **pValue,vector<int> val)
 
 vector<int> listTupleToVector_Int(PyObject* incoming) {
 	vector<int> data;
+	if (PyTuple_Check(incoming)) {
+		for(Py_ssize_t i = 0; i < PyTuple_Size(incoming); i++) {
+			PyObject *value = PyTuple_GetItem(incoming, i);
+			data.push_back( PyFloat_AsDouble(value) );
+		}
+	} else {
+		if (PyList_Check(incoming)) {
+			for(Py_ssize_t i = 0; i < PyList_Size(incoming); i++) {
+				PyObject *value = PyList_GetItem(incoming, i);
+				data.push_back( PyFloat_AsDouble(value) );
+			}
+		} else {
+			throw logic_error("Passed PyObject pointer was not a list or tuple!");
+		}
+	}
+	return data;
+}
+
+// PyObject -> Vector
+vector<float> listTupleToVector_Float(PyObject* incoming) {
+	vector<float> data;
 	if (PyTuple_Check(incoming)) {
 		for(Py_ssize_t i = 0; i < PyTuple_Size(incoming); i++) {
 			PyObject *value = PyTuple_GetItem(incoming, i);
