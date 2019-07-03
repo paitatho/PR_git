@@ -5,6 +5,7 @@
 /*
  * Produit en croix pour savoir ce que représente l'angle dans la forme
  * utilisé par la carte ssc. 2000 -> 180° 
+ * 							 0    ->   0°				
  * On ajoute la valeur à la position courante pour faire, si possible,
  * la rotation du bon angle.
  */ 
@@ -18,6 +19,8 @@ using namespace std;
 
 Controler::Controler()
 {
+	//L'ordre est très important !!
+	//pour le changer il faut aussi modifier le type enum PART du fichier type.h
 	servos.push_back(Servo(0,837));  	//main
 	servos.push_back(Servo(3,2222));	//poignet
 	servos.push_back(Servo(6,867));		//bras3
@@ -44,7 +47,7 @@ void Controler::waitForDone(){
 }
 
 
-
+//tourner la base
 RET Controler::moveBase(float angle){
 	
 	if(servos[PART::BASE].move(angleToSsc(angle, servos[PART::BASE].current),DEFAULT_TIME/3) !=NORM)
@@ -101,12 +104,11 @@ RET Controler::moveArm(float angle1,float angle2,float angle3)
 	}
 		
 	arm1Angle = angle1;
-
-
 	
 	return NORM;
 }
 
+//fait se serrer la pince
 RET Controler::catchObject(){
 	
 	if(servos[PART::HAND].move(2100) != NORM)
@@ -127,6 +129,9 @@ void Controler::init(){
 	}
 }
 
+/*
+ * permet de revenir à la position initiale et de réinitialiser les angles
+ * */
 void Controler::init(unsigned int time){
 		
 	servos[PART::ARM1].initPos(time);

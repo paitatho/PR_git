@@ -69,7 +69,7 @@ class Servo
 		
 		void initPos(unsigned int time);
 		
-		//
+		//récupérer la valeur de power du moteur
 		int getPulseWidth();
 		
 		int getCurrent(){

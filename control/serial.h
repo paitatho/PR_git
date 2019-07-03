@@ -20,8 +20,17 @@ class Serial
 public:
 	Serial(std::string d, unsigned int b);
 	~Serial();
+	/*
+	 * Initialise le port série
+	 * */
 	RET initialize();
+	/*
+	 * permet d'envoyer un message sur le port série 
+	 * */
 	RET send(std::string cmd);
+	/*
+	 * permet de recevoir un message sur le port série 
+	 * */
 	std::string receive();
 	void pause(unsigned int t);
 };

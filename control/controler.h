@@ -51,14 +51,12 @@ class Controler
 		/*
 		 * Cette fonction permet de deplacer les moteurs à l'aide
 		 * de controle clavier. 
-		 * le flêche droite et gauche permettent respectivement 
-		 * d'augmenter ou de réduire l'angle d'un moteur
 		 */ 
 		void keyboardControl();
 };
 
 /*
- *Cette classe permet de générer une commande de déplacement
+ * Cette classe permet de générer une commande de déplacement
  * compréhensible par la carte SSC 
  */ 
 class Command
@@ -68,6 +66,8 @@ class Command
 	public:
 		Command():cmd(""){}
 		
+		//pour l'initialisation car au premier mouvement la vitesse
+		//n'est pas prise en compte 
 		Command(int pin,int power)
 		{
 			setPinPower(pin,power);

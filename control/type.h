@@ -12,6 +12,7 @@
 #define DEFAULT_TIME 2000
 #define DEFAULT_SPEED 1000
 
+//type de retour pour savoir s'il y a une erreur
 enum RET
 {
 	NORM = 0,
@@ -19,6 +20,7 @@ enum RET
 	ERROR =2
 };
 
+//Ordre des moteurs dans le tableau de la classe controler
 enum PART
 {
 	HAND=0,

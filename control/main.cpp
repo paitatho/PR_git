@@ -20,8 +20,10 @@ vector<float> listTupleToVector_Float(PyObject* incoming);
 int main()
 {
 	Controler ssc;
+	
+	/*cette fonction permet de déplacer le robot à l'aide de touches clavier
+	  voir définition pour plus de détails*/
 	//ssc.keyboardControl();
-	//ssc.test();
 	
 	CHOICE candy(CHOICE::UNKNOW);
 	bool rotBas(false);
@@ -32,7 +34,8 @@ int main()
 	
 	PyObject *pName(NULL), *pModule(NULL), *pFunc(NULL);
     PyObject *pArgs(NULL), *pValue(NULL);
-    vector<int> tmp; tmp.push_back(6);tmp.push_back(7);
+    
+    vector<int> tmp; //tmp.push_back(6);tmp.push_back(7);
     
 	if(initPython(&pName,&pModule,&pFunc,&pArgs,&pValue,tmp) == 1){
 		if(pFunc !=NULL)
@@ -41,14 +44,16 @@ int main()
 			Py_DECREF(pModule);
 	}
 	
+	//boucle principale du programme
 	while(1)
 	{	
-		
+		//d'abord on demande le choix du bonbon
 		if(candy == CHOICE::UNKNOW)
 		{
 			candy =choiceCandy();
-			cout<<"#### Bonbon choisit : "<<enumToString(candy)<<"####"<<endl<<endl;
+			cout<<"#### Bonbon choisi : "<<enumToString(candy)<<" ####"<<endl<<endl;
 		}
+		//Ensuite on tourne la base tant que le bras n'est pas aligné au bonbon
 		else if (!rotBas)
 		{
 			vector<float> t; t.push_back(candy);t.push_back(-1.0);
@@ -58,9 +63,10 @@ int main()
 			if (pValue != NULL) {
 				vector<float> result = listTupleToVector_Float(pValue);
 				//premier entier indique s'il y a bien eu une détection
+				//si pas de détection on balaye l'environnement
 				if(result[0] == 0.0)
 				{
-					//si pas de détection on balaye l'environnement
+					//si on arrive au bout d'un côté on change de côté
 					if(ssc.moveBase(angleBase) == ERROR)
 						angleBase = -angleBase;
 					else{
@@ -98,6 +104,7 @@ int main()
 			
 			
 		}
+		//Ensuite on calcule la cinématique inverse et on les applique au bras
 		else if(!moveArm)
 		{
 			float depth;
@@ -144,11 +151,13 @@ int main()
 			
 			moveArm=true;
 		}
+		//On attrape le bonbon
 		else if(!catchCandy)
 		{
 			ssc.catchObject();
 			catchCandy=true;
 		}
+		//On réinitialise le tout et on revient à la position de départ
 		else
 		{
 			candy= CHOICE::UNKNOW;
@@ -157,7 +166,6 @@ int main()
 			moveArm=false;
 			//retour à la position d'origine
 			ssc.init(1000);
-			
 		}
 	}
 	
@@ -168,11 +176,14 @@ int main()
 	return 0;
 }
 
+/*
+ * Cette fonction permet d'initialiser une fonction python
+ * */
 int initPython(PyObject **pName,PyObject  **pModule,PyObject  **pFunc,PyObject  **pArgs,PyObject  **pValue,vector<int> val)
 {
 		
-	char path[] ="main";
-	char name[] ="main";
+	char path[] ="main";	// nom du script sans le .py (marche que si c'est main)	
+	char name[] ="main";	// nom de la fontion
 	
     int i;
     Py_Initialize();
@@ -222,6 +233,7 @@ int initPython(PyObject **pName,PyObject  **pModule,PyObject  **pFunc,PyObject  
     return 0;
 }
 
+//permet de set les arguments à envoyer à la fonction python
 int setArgs(PyObject **pArgs,PyObject **pValue,vector<float> val) 
 {
 	if(*pArgs != NULL)
@@ -242,7 +254,7 @@ int setArgs(PyObject **pArgs,PyObject **pValue,vector<float> val)
 	}
 }
 
-
+// PyObject -> Vector int
 vector<int> listTupleToVector_Int(PyObject* incoming) {
 	vector<int> data;
 	if (PyTuple_Check(incoming)) {
@@ -263,7 +275,7 @@ vector<int> listTupleToVector_Int(PyObject* incoming) {
 	return data;
 }
 
-// PyObject -> Vector
+// PyObject -> Vector float
 vector<float> listTupleToVector_Float(PyObject* incoming) {
 	vector<float> data;
 	if (PyTuple_Check(incoming)) {
